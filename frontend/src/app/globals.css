@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background-1: var(--c-background-1);
+  --color-background-2: var(--c-background-2);
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+.min-h-mobile {
+  min-height: var(--app-height);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Geist, Arial, Helvetica, sans-serif;
+}
+
+button {
+  cursor: pointer;
+}

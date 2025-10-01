@@ -1,0 +1,7 @@
+# .dockerignore
+.idea
+.venv
+.pidentify-dev
+scripts
+_frontend
+.pidentify-dev/rundev.sh
