@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter
 from starlette.requests import Request
 
@@ -40,14 +42,14 @@ def get_history(params: PaginateQuery) -> PaginatedResponse:
 def delete_history_entry(entry_id: str, request: Request) -> ResponseModel:
     check_auth(request)
 
-    db.delete_history_entries(entry_id=entry_id)
+    db.delete_history_entries(entry_id=UUID(entry_id))
     return ResponseModel(success=True)
 
 
 @api.patch("/{entry_id}")
-def update_history_entry(entry_id: str, update_data: UpdateHistoryRequest, request: Request) -> ResponseModel:
+def update_track(entry_id: str, update_data: UpdateHistoryRequest, request: Request) -> ResponseModel:
     check_auth(request)
 
     entry = db.get_history_entry(entry_id=entry_id)
-    db.update_history_entries(dict(track_id=entry.track_id), **update_data.model_dump(exclude_unset=True))
+    db.update_db_track(entry.track_guid, **update_data.model_dump(exclude_unset=True))
     return ResponseModel(success=True)

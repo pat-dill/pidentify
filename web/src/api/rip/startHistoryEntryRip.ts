@@ -20,19 +20,19 @@ async function startHistoryEntryRip(
 type StartHistoryEntryRipOpts = {
   entry_id: string;
   redirect?: boolean;
-}
+};
 
 export function useStartHistoryEntryRip() {
   const router = useTransitionRouter();
 
   return useMutation({
     mutationFn: async (opts: StartHistoryEntryRipOpts) => {
-      const {entry_id, redirect=true} = opts;
+      const { entry_id, redirect = true } = opts;
 
       await startHistoryEntryRip(entry_id);
       if (redirect) {
         router.push(`/rip/${entry_id}`);
       }
-    }
-  })
+    },
+  });
 }

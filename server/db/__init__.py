@@ -90,6 +90,18 @@ def get_db_track_from_music_id(track_id: str, source: str = "", **kwargs) -> mod
         return models.DbTrack.model_validate(db_track, from_attributes=True)
 
 
+def update_db_track(track_guid: UUID, **kwargs) -> models.DbTrack:
+    with db_client.session() as session:
+        db_track = session.execute(
+            update(Track)
+            .values(**kwargs)
+            .where(Track.track_guid == track_guid)
+            .returning(Track)
+        ).scalar_one()
+        session.commit()
+        return models.DbTrack.model_validate(db_track, from_attributes=True)
+
+
 def get_history_entry(entry_id) -> models.HistoryEntry | None:
     with db_client.session() as session:
         result = session.execute(

@@ -47,10 +47,7 @@ export default function HistoryEntryDropdown({
     }
   });
 
-  const hasUnfinishedRip =
-    clientConfig?.can_save &&
-    entry.saved_temp_buffer &&
-    !entry.saved_to_library;
+  const hasUnfinishedRip = clientConfig?.can_save && entry.saved_temp_buffer;
 
   const startRip = useStartHistoryEntryRip();
   const deleteHistoryEntry = useDeleteHistoryEntry();

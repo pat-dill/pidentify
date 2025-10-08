@@ -3,8 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 
-# Environment variables config
-# this is the stuff that should only be editable by the docker compose
+# TODO: use a config file rather than env and provide web interface
 
 class _EnvConfig(BaseModel):
     class Config:
@@ -32,8 +31,8 @@ class _EnvConfig(BaseModel):
     buffer_length_seconds: int = 12 * 60
     temp_save_offset: int = 30
 
-    appdata_dir: Path = Path("/appdata")
-    music_library_dir: Path = Path("/music")
+    appdata_dir: Path = Path("/etc/pidentify/config")
+    music_library_dir: Path = Path("/etc/pidentify/music")
 
     last_fm_key: str = ""
 
@@ -44,6 +43,8 @@ class _EnvConfig(BaseModel):
 
     music_id_plugin: str = ""
 
+env_config = _EnvConfig.model_validate(os.environ)
+
 
 class ClientConfig(BaseModel):
     can_skip: bool
@@ -53,4 +54,3 @@ class ClientConfig(BaseModel):
     temp_save_offset: int
 
 
-env_config = _EnvConfig.model_validate(os.environ)

@@ -79,7 +79,7 @@ export function LyricsMini({ startedAt, lyrics }: LyricsProps) {
       styles={{
         body: {
           padding: 0,
-        }
+        },
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -105,10 +105,12 @@ export function LyricsMini({ startedAt, lyrics }: LyricsProps) {
             }}
             key={idx}
           >
-            <Typography.Text style={{
-              fontSize: 20,
-              fontWeight: 600,
-            }}>
+            <Typography.Text
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+              }}
+            >
               {line.words}
             </Typography.Text>
           </div>

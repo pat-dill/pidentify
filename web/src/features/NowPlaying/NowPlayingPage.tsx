@@ -15,7 +15,7 @@ import dayjs from "dayjs";
 
 export function NowPlayingPage() {
   const status = useStatus();
-  const {data: lyrics} = useLyrics();
+  const { data: lyrics } = useLyrics();
 
   if (!status) return;
 
@@ -49,7 +49,10 @@ export function NowPlayingPage() {
           >
             <ThemeProvider sourceUrl={status.track?.track_image}>
               {lyrics && (
-                <LyricsMini startedAt={dayjs(status.started_at)} lyrics={lyrics}/>
+                <LyricsMini
+                  startedAt={dayjs(status.started_at)}
+                  lyrics={lyrics}
+                />
               )}
 
               {status.last_fm_track?.wiki?.summary && (

@@ -12,5 +12,5 @@ export function useDeleteHistoryEntry() {
   return useMutation({
     mutationFn: (entryId: string) => deleteHistoryEntry(entryId),
     onSettled: () => queryClient.invalidateQueries(getHistoryQuery()),
-  })
+  });
 }

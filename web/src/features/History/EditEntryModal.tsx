@@ -26,10 +26,10 @@ export function EditEntryModal({
 
   const [form] = Form.useForm<FormFields>();
   const initialValues = {
-    track_name: entry.track_name || "",
-    album_name: entry.album_name || "",
-    artist_name: entry.artist_name || "",
-    duration_seconds: entry.duration_seconds || null,
+    track_name: entry.track.track_name || "",
+    album_name: entry.track.album_name || "",
+    artist_name: entry.track.artist_name || "",
+    duration_seconds: entry.track.duration_seconds || null,
   };
 
   const editEntryMut = useMutation({
@@ -54,7 +54,9 @@ export function EditEntryModal({
       }}
       okButtonProps={{ variant: "solid", color: "default" }}
     >
-      <Typography.Title level={4}>Edit "{entry.track_name}"</Typography.Title>
+      <Typography.Title level={4}>
+        Edit "{entry.track.track_name}"
+      </Typography.Title>
 
       <Form
         form={form}
