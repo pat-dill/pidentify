@@ -6,7 +6,7 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, Session
 
-from pidentify.config import env_config
+from server.config import env_config
 
 T = TypeVar('T')
 

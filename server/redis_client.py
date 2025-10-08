@@ -2,8 +2,8 @@ import time
 from datetime import timedelta
 
 from redis import Redis
-from pidentify.config import env_config
-from pidentify.utils import utcnow
+from server.config import env_config
+from server.utils import utcnow
 
 
 def get_redis():

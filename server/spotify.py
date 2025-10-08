@@ -2,12 +2,12 @@ from datetime import datetime, timezone
 
 import httpx
 
-from pidentify.cache import async_cached
-from pidentify.config import env_config
-from pidentify.models import BaseModel, Lyrics, SpotifyTrack, SpotifyAlbum
-from pidentify.redis_client import get_redis
-from pidentify.utils.snake_to_camel import snake_to_camel
-from pidentify.utils import utcnow
+from server.cache import async_cached
+from server.config import env_config
+from server.models import BaseModel, Lyrics, SpotifyTrack, SpotifyAlbum
+from server.redis_client import get_redis
+from server.utils.snake_to_camel import snake_to_camel
+from server.utils import utcnow
 
 user_agent = "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.0.0 Safari/537.36"
 

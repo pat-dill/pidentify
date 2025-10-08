@@ -3,7 +3,7 @@ from typing import Callable, TypeVar
 from sqlalchemy import Select, BaseRow, func
 from sqlalchemy.orm import Session
 
-from pidentify.models import PaginatedResponse
+from server.models import PaginatedResponse
 
 T = TypeVar('T')
 

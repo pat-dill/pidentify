@@ -2,11 +2,11 @@ import re
 
 import httpx
 
-from pidentify.cache import cached, async_cached
-from pidentify.config import env_config
-from pidentify.logger import logger
-from pidentify.models import LastFMTrack, LastFMArtist
-from pidentify.utils import duration_to_seconds
+from server.cache import cached, async_cached
+from server.config import env_config
+from server.logger import logger
+from server.models import LastFMTrack, LastFMArtist
+from server.utils import duration_to_seconds
 
 duration_re = re.compile(r"((\d{1,2}:)+\d\d)")
 

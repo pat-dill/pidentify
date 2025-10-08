@@ -6,8 +6,8 @@ from alembic_utils.replaceable_entity import ReplaceableEntity, register_entitie
 from sqlalchemy import engine_from_config, MetaData
 from sqlalchemy import pool
 
-from pidentify import sql_schemas
-from pidentify.config import env_config
+from server import sql_schemas
+from server.config import env_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -9,8 +9,8 @@ from fastapi.openapi.utils import get_openapi
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 
-from pidentify.models import ResponseModel, LyricLine, Lyrics
-from pidentify.utils import safe_filename, is_local_client
+from server.models import ResponseModel, LyricLine, Lyrics
+from server.utils import safe_filename, is_local_client
 from .config import ClientConfig, env_config
 from .exceptions import ErrorResponse
 from .spotify import user_agent
@@ -19,9 +19,9 @@ sys.path.append(str(Path(__file__).parents))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pidentify.redis_client import get_redis
-from pidentify.routes import status, history, rip_tool
-from pidentify.routes.status import get_status
+from server.redis_client import get_redis
+from server.routes import status, history, rip_tool
+from server.routes.status import get_status
 
 app = FastAPI()
 

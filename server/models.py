@@ -6,7 +6,7 @@ from fastapi import Query
 from pydantic import BaseModel as _BaseModel, Field
 from starlette.responses import Response
 
-from pidentify.utils.snake_to_camel import snake_to_camel
+from server.utils.snake_to_camel import snake_to_camel
 
 
 class BaseModel(_BaseModel):

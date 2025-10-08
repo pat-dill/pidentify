@@ -17,7 +17,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy_utc import UtcDateTime
 from sqlalchemy_utils import force_instant_defaults
 
-from pidentify.utils import utcnow
+from server.utils import utcnow
 
 DBMeta = MetaData()
 

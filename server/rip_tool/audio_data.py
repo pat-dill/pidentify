@@ -3,7 +3,7 @@ from pathlib import Path
 
 import soundfile
 
-from pidentify.utils import chunk_list
+from server.utils import chunk_list
 
 
 def get_audio_data_chart(file_path: Path, parts: int):

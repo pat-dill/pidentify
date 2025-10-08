@@ -5,13 +5,13 @@ from fastapi import APIRouter
 from starlette.requests import Request
 from starlette.responses import FileResponse
 
-from pidentify.config import env_config
-from pidentify.db import get_history_entry
-from pidentify.exceptions import ErrorResponse
-from pidentify.models import HistoryEntry, ResponseModel, BaseModel
-from pidentify.redis_client import get_redis
-from pidentify.rip_tool.audio_data import get_audio_data_chart
-from pidentify.utils import is_local_client
+from server.config import env_config
+from server.db import get_history_entry
+from server.exceptions import ErrorResponse
+from server.models import HistoryEntry, ResponseModel, BaseModel
+from server.redis_client import get_redis
+from server.rip_tool.audio_data import get_audio_data_chart
+from server.utils import is_local_client
 
 
 # Request/Response models

@@ -10,12 +10,12 @@ import asyncclick as click
 
 sys.path.append(str(Path(__file__).parents[2]))
 
-from pidentify.logger import logger
-from pidentify.config import env_config
-from pidentify.db import get_history_entries, update_history_entries
-from pidentify.models import SpotifyTrack
-from pidentify.sql_schemas import HistoryEntry
-from pidentify.spotify import add_to_spotify_playlist
+from server.logger import logger
+from server.config import env_config
+from server.db import get_history_entries, update_history_entries
+from server.models import SpotifyTrack
+from server.sql_schemas import HistoryEntry
+from server.spotify import add_to_spotify_playlist
 
 # task registration
 

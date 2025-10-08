@@ -1,7 +1,7 @@
 import functools
 import json
 
-from pidentify.redis_client import get_redis
+from server.redis_client import get_redis
 
 
 def cached(ttl: int = 5 * 60, encoder=None, decoder=None, cache_none=False):

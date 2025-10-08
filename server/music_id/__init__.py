@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from pidentify.config import env_config
-from pidentify.models import MusicIdResult
-from pidentify.music_id.base import TrackIdPlugin
+from server.config import env_config
+from server.models import MusicIdResult
+from server.music_id.base import TrackIdPlugin
 
 
 plugins_dir = Path(__file__).parent / "plugins"

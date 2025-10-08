@@ -1,6 +1,6 @@
 from msgpack.fallback import BytesIO
 
-from pidentify.models import BaseModel, MusicIdResult
+from server.models import BaseModel, MusicIdResult
 
 
 class Config(BaseModel):

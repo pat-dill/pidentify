@@ -8,10 +8,10 @@ from fastapi.routing import APIRouter
 from redis import Redis, RedisError
 from starlette.websockets import WebSocket
 
-from pidentify.logger import logger
-from pidentify.models import StatusResponse
-from pidentify.redis_client import get_redis
-from pidentify.websockets import ConnectionManager
+from server.logger import logger
+from server.models import StatusResponse
+from server.redis_client import get_redis
+from server.websockets import ConnectionManager
 
 ws_manager = ConnectionManager()
 

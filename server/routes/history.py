@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from starlette.requests import Request
 
-from pidentify import db
-from pidentify.exceptions import ErrorResponse
-from pidentify.models import PaginateQuery, PaginatedResponse, ResponseModel, BaseModel
-from pidentify.utils import is_local_client
+from server import db
+from server.exceptions import ErrorResponse
+from server.models import PaginateQuery, PaginatedResponse, ResponseModel, BaseModel
+from server.utils import is_local_client
 
 
 # Request models

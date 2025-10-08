@@ -11,19 +11,19 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
-from pidentify import music_id
-from pidentify.config import env_config
-from pidentify.logger import logger
-from pidentify.last_fm import get_last_fm_track, get_last_fm_artist
-from pidentify.redis_client import sleep
-from pidentify.db import save_history_entry, get_history_entries, get_db_track_from_music_id
-from pidentify.utils import utcnow, normalize
-from pidentify.models import ResponseModel, IdentifyResult
-from pidentify.redis_client import get_redis
-from pidentify.db import get_history_entry, update_history_entries
-from pidentify.utils import clamp
-from pidentify.circular_buffer import CircularBuffer
-from pidentify import sql_schemas
+from server import music_id
+from server.config import env_config
+from server.logger import logger
+from server.last_fm import get_last_fm_track, get_last_fm_artist
+from server.redis_client import sleep
+from server.db import save_history_entry, get_history_entries, get_db_track_from_music_id
+from server.utils import utcnow, normalize
+from server.models import ResponseModel, IdentifyResult
+from server.redis_client import get_redis
+from server.db import get_history_entry, update_history_entries
+from server.utils import clamp
+from server.circular_buffer import CircularBuffer
+from server import sql_schemas
 
 buffer_lock = threading.Lock()
 buffer_size = env_config.sample_rate * env_config.buffer_length_seconds
