@@ -44,32 +44,32 @@ def cron(run_every: timedelta):
 # tasks
 
 
-@cron(timedelta(minutes=1))
-async def save_spotify_history():
-    playlist_id = env_config.spotify_history_playlist
-    if not playlist_id:
-        return
-
-    earliest_entries = get_history_entries(
-        HistoryEntry.spotify.is_not(None),
-        HistoryEntry.saved_on_spotify.is_(False),
-        order_by="detected_at",
-        mode="asc",
-    )
-    if earliest_entries.total_count == 0:
-        return
-
-    entries: list[HistoryEntry] = list(reversed(earliest_entries.data))
-    click.echo(f"Saving {len(earliest_entries.data)} tracks to Spotify playlist {playlist_id!r}")
-    await add_to_spotify_playlist(
-        playlist_id,
-        *[f"spotify:track:{entry.spotify.id}" for entry in entries],
-        position=0
-    )
-    update_history_entries(
-        HistoryEntry.entry_id.in_([entry.entry_id for entry in entries]),
-        saved_on_spotify=True,
-    )
+# @cron(timedelta(minutes=1))
+# async def save_spotify_history():
+#     playlist_id = env_config.spotify_history_playlist
+#     if not playlist_id:
+#         return
+#
+#     earliest_entries = get_history_entries(
+#         HistoryEntry.spotify.is_not(None),
+#         HistoryEntry.saved_on_spotify.is_(False),
+#         order_by="detected_at",
+#         mode="asc",
+#     )
+#     if earliest_entries.total_count == 0:
+#         return
+#
+#     entries: list[HistoryEntry] = list(reversed(earliest_entries.data))
+#     click.echo(f"Saving {len(earliest_entries.data)} tracks to Spotify playlist {playlist_id!r}")
+#     await add_to_spotify_playlist(
+#         playlist_id,
+#         *[f"spotify:track:{entry.spotify.id}" for entry in entries],
+#         position=0
+#     )
+#     update_history_entries(
+#         HistoryEntry.entry_id.in_([entry.entry_id for entry in entries]),
+#         saved_on_spotify=True,
+#     )
 
 
 # command
