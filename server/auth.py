@@ -25,5 +25,5 @@ def check_password(password: str, hashed_pw: str) -> bool:
     try:
         ph = argon2.PasswordHasher()
         return ph.verify(hashed_pw, password)
-    except Exception as e:
+    except Exception:
         return False
