@@ -3,7 +3,7 @@ import re
 import httpx
 
 from server.cache import cached, async_cached
-from server.config import env_config
+from server.config import env_config, file_config
 from server.logger import logger
 from server.models import LastFMTrack, LastFMArtist
 from server.utils import duration_to_seconds
@@ -17,7 +17,7 @@ async def get_last_fm_track(title, artist) -> LastFMTrack | None:
         try:
             resp = (await client.post("https://ws.audioscrobbler.com/2.0", params={
                 "method": "track.getInfo",
-                "api_key": env_config.last_fm_key,
+                "api_key": file_config.last_fm_key,
                 "artist": artist,
                 "track": title,
                 "format": "json"
@@ -51,7 +51,7 @@ async def get_last_fm_artist(name: str) -> LastFMArtist | None:
         try:
             resp = (await client.post("https://ws.audioscrobbler.com/2.0", params={
                 "method": "artist.getinfo",
-                "api_key": env_config.last_fm_key,
+                "api_key": file_config.last_fm_key,
                 "artist": name,
                 "format": "json"
             })).json()

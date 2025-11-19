@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
 
 # Install s6-overlay for process supervision
 RUN case "${TARGETARCH}" in \
-      "amd64") S6_ARCH="x86_64" ;; \
-      "arm64") S6_ARCH="aarch64" ;; \
-      *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    "amd64") S6_ARCH="x86_64" ;; \
+    "arm64") S6_ARCH="aarch64" ;; \
+    *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac && \
     curl -L -o /tmp/s6-overlay-noarch.tar.xz https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz && \
     curl -L -o /tmp/s6-overlay.tar.xz https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz && \
@@ -48,7 +48,7 @@ COPY rootfs/ /
 RUN chmod +x /etc/services.d/api/run /etc/services.d/recorder/run /etc/cont-init.d/00-migrations
 
 # Create volumes
-VOLUME ["/appdata/yafs", "/files"]
+VOLUME ["/etc/pidentify/config", "/etc/pidentify/music"]
 
 EXPOSE 8000
 

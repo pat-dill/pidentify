@@ -52,7 +52,6 @@ async def recognize_raw(raw, sample_rate, downsample_to=44100):
         audio_buffer.seek(0)
 
         if plugin.is_async:
-            return await plugin.identify_track(audio_buffer)
+            return await plugin.identify_track_async(audio_buffer)
         else:
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, plugin.identify_track, audio_buffer)
+            return await asyncio.to_thread(plugin.identify_track, audio_buffer)

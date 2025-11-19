@@ -20,7 +20,7 @@ sys.path.append(str(Path(__file__).parents))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server.redis_client import get_redis
-from server.routes import status, history, rip_tool
+from server.routes import status, history, rip_tool, auth
 from server.routes.status import get_status
 
 app = FastAPI()
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(status.api)
 app.include_router(history.api)
 app.include_router(rip_tool.api)
+app.include_router(auth.api)
 
 @app.post("/api/scan-now")
 def scan_now(request: Request) -> ResponseModel:
@@ -43,7 +44,7 @@ def scan_now(request: Request) -> ResponseModel:
         rdb.delete("sleep.next_scan")
         return ResponseModel(success=True, status="")
     else:
-        return ResponseModel(success=False, status="must_be_local")
+        raise ErrorResponse(401, "not_authorized")
 
 
 @app.get("/api/dump", response_model=None)
@@ -58,7 +59,7 @@ async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileR
         resp_raw = ps.get_message(timeout=30)
 
         if resp_raw is None:
-            return ResponseModel(success=False, status="timed_out")
+            raise ErrorResponse(500, "timed_out")
         else:
             resp = ResponseModel.model_validate_json(resp_raw["data"])
             if resp.data:
@@ -70,7 +71,7 @@ async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileR
                 return resp
 
     else:
-        return ResponseModel(success=False, message="Not authorized")
+        raise ErrorResponse(401, "not_authorized")
 
 
 @app.get("/api/lyrics")
@@ -146,16 +147,16 @@ def restart_recorder(request: Request) -> ResponseModel:
             text=True,
         )
     except FileNotFoundError:
-        return ResponseModel(
-            success=False,
-            status="not_available",
-            message="s6-svc is not available in this environment",
+        raise ErrorResponse(
+            400, 
+            "not_available",
+            "s6-svc is not available in this environment",
         )
     except subprocess.CalledProcessError as exc:
-        return ResponseModel(
-            success=False,
-            status="restart_failed",
-            message=exc.stderr.strip() or "Failed to restart recorder",
+        raise ErrorResponse(
+            400,
+            "restart_failed",
+            exc.stderr.strip() or "Failed to restart recorder",
         )
 
     return ResponseModel(success=True, message="Recorder restart requested")

@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 
 from pydantic import BaseModel
-from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
+import secrets
+import yaml
 
 
 class EnvConfig(BaseModel):
@@ -34,6 +35,7 @@ config_fp = env_config.appdata_dir / "config.yaml"
 class FileConfig(BaseModel):
     class Config:
         populate_by_name = True
+        
     
     device: str | None = ""
     device_offset: float = 0  # how many seconds behind is the displayed timestamp from the actual timestamp
@@ -44,21 +46,29 @@ class FileConfig(BaseModel):
 
     buffer_length_seconds: int = 12 * 60
     temp_save_offset: int = 30
-    
+
     last_fm_key: str = ""
     music_id_plugin: str = ""
+
+    admin_username: str = "admin"
+    admin_password_hash: str = ""
+
+    jwt_secret_key: str = secrets.token_urlsafe(32)
     
     def save(self):
-        config_fp.write_text(to_yaml_str(self))
+        yaml_str = yaml.dump(self.model_dump(exclude_defaults=True))
+        config_fp.write_text(yaml_str)
 
     @classmethod
     def load(cls):
         if not config_fp.is_file():
+            # create initial config file
             config = cls()
-            config.save()  # create config file if it does not exist
+            config.save()
             return config
         
-        return parse_yaml_raw_as(cls, config_fp.read_text())
+        config_obj = yaml.safe_load(config_fp.read_text())
+        return cls.model_validate(config_obj)
         
 
 file_config = FileConfig.load()
