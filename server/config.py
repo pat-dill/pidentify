@@ -3,11 +3,10 @@ import os
 from pathlib import Path
 
 from pydantic import BaseModel
+from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
 
 
-# TODO: use a config file rather than env and provide web interface
-
-class _EnvConfig(BaseModel):
+class EnvConfig(BaseModel):
     class Config:
         alias_generator = str.upper
         populate_by_name = True
@@ -35,6 +34,10 @@ class _EnvConfig(BaseModel):
     recorder_service_path: Path = Path("/run/service/recorder")
 
 
+env_config = EnvConfig.model_validate(os.eniron)
+config_fp = env_config.appdata_dir / "config.yaml"
+
+
 class FileConfig(BaseModel):
     class Config:
         populate_by_name = True
@@ -44,20 +47,21 @@ class FileConfig(BaseModel):
     
     last_fm_key: str = ""
     music_id_plugin: str = ""
-
-
-env_config = _EnvConfig.model_validate(os.environ)
-
-
-def load_file_config() -> FileConfig:
-    config_path = env_config.appdata_dir / "config.json"
-    if not config_path.is_file():
-        return FileConfig()
     
-    return FileConfig.model_validate_json(config_path.read_text())
+    def save(self):
+        config_fp.write_text(to_yaml_str(self))
 
+    @classmethod
+    def load(cls):
+        if not config_fp.is_file():
+            config = FileConfig()
+            config.save()  # create config file if it does not exist
+            return config
+        
+        return parse_yaml_raw_as(FileConfig, config_fp.read_text())
+        
 
-file_config = load_file_config()
+file_config = FileConfig.load()
 
 
 class ClientConfig(BaseModel):
