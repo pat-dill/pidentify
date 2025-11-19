@@ -54,11 +54,11 @@ class FileConfig(BaseModel):
     @classmethod
     def load(cls):
         if not config_fp.is_file():
-            config = FileConfig()
+            config = cls()
             config.save()  # create config file if it does not exist
             return config
         
-        return parse_yaml_raw_as(FileConfig, config_fp.read_text())
+        return parse_yaml_raw_as(cls, config_fp.read_text())
         
 
 file_config = FileConfig.load()
