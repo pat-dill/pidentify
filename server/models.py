@@ -42,34 +42,6 @@ class LastFMArtist(BaseModel):
     bio: dict = Field(default_factory=dict)
 
 
-class SpotifyTrack(BaseModel):
-    id: str
-    name: str
-    disc_number: Optional[int] = None
-    track_number: Optional[int] = None
-    duration_ms: int = 0
-    external_urls: dict | None = Field(default_factory=dict)
-    external_ids: dict[str, str] = Field(default_factory=dict)
-    album: dict = Field(default_factory=dict)
-
-
-class SpotifyTracks(BaseModel):
-    items: list[SpotifyTrack]
-
-
-class SpotifyAlbum(BaseModel):
-    id: str
-    type_: str = Field(alias="type")
-    total_tracks: int
-    external_urls: dict = Field(default_factory=dict)
-    external_ids: dict[str, str] = Field(default_factory=dict)
-    images: list[dict]
-    name: str
-    tracks: SpotifyTracks
-    release_date: str = ""
-    label: str = ""
-
-
 class LyricLine(BaseModel):
     class Config:
         alias_generator = snake_to_camel

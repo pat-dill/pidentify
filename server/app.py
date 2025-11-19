@@ -13,7 +13,6 @@ from server.models import ResponseModel, LyricLine, Lyrics
 from server.utils import safe_filename, is_local_client
 from .config import ClientConfig, env_config
 from .exceptions import ErrorResponse
-from .spotify import user_agent
 
 sys.path.append(str(Path(__file__).parents))
 

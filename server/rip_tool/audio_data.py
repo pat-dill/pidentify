@@ -5,7 +5,7 @@ import soundfile
 
 from server.utils import chunk_list
 
-
+ 
 def get_audio_data_chart(file_path: Path, parts: int):
     with file_path.open("rb") as file:
         sf = soundfile.SoundFile(file)

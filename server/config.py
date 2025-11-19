@@ -14,7 +14,7 @@ class _EnvConfig(BaseModel):
 
     redis_host: str = "localhost"
     redis_port: int = 6379
-    db_url: str = "sqlite+libsql:////appdata/database.db"
+    db_url: str = "sqlite:////appdata/database.db"
 
     device: str | None = ""
     device_offset: float = 0  # how many seconds behind is the displayed timestamp from the actual timestamp
@@ -35,11 +35,6 @@ class _EnvConfig(BaseModel):
     music_library_dir: Path = Path("/etc/pidentify/music")
 
     last_fm_key: str = ""
-
-    spotify_dc: str = ""
-    spotify_key: str = ""
-    spotify_t: str = ""
-    spotify_history_playlist: str = ""
 
     music_id_plugin: str = ""
 
