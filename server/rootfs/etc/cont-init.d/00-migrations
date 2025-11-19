@@ -1,0 +1,6 @@
+#!/command/with-contenv bash
+set -euo pipefail
+
+cd /server
+alembic upgrade head
+

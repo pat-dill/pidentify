@@ -1,5 +1,7 @@
+import json
 import os
 from pathlib import Path
+
 from pydantic import BaseModel
 
 
@@ -28,17 +30,41 @@ class _EnvConfig(BaseModel):
     duration: int = 15
     silence_threshold: float = 0.0004
 
-    buffer_length_seconds: int = 12 * 60
-    temp_save_offset: int = 30
-
     appdata_dir: Path = Path("/etc/pidentify/config")
     music_library_dir: Path = Path("/etc/pidentify/music")
+    recorder_service_path: Path = Path("/run/service/recorder")
 
+
+class FileConfig(BaseModel):
+    class Config:
+        populate_by_name = True
+
+    buffer_length_seconds: int = 12 * 60
+    temp_save_offset: int = 30
+    
     last_fm_key: str = ""
-
     music_id_plugin: str = ""
 
+
 env_config = _EnvConfig.model_validate(os.environ)
+
+
+def _load_file_config() -> FileConfig:
+    config_path = env_config.appdata_dir / "config.json"
+    if not config_path.is_file():
+        return FileConfig()
+
+    try:
+        with config_path.open() as fp:
+            raw_data = json.load(fp)
+    except Exception as exc:  # noqa: BLE001 - log and fall back to defaults
+        print(f"Failed to load {config_path}: {exc}", flush=True)
+        return FileConfig()
+
+    return FileConfig.model_validate(raw_data)
+
+
+file_config = _load_file_config()
 
 
 class ClientConfig(BaseModel):

@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -11,7 +12,7 @@ from starlette.responses import FileResponse, JSONResponse
 
 from server.models import ResponseModel, LyricLine, Lyrics
 from server.utils import safe_filename, is_local_client
-from .config import ClientConfig, env_config
+from .config import ClientConfig, env_config, file_config
 from .exceptions import ErrorResponse
 
 sys.path.append(str(Path(__file__).parents))
@@ -127,9 +128,38 @@ async def get_client_config(request: Request) -> ClientConfig:
         can_skip=is_local,
         can_save=is_local,
         can_edit_history=is_local,
-        buffer_length_seconds=env_config.buffer_length_seconds,
-        temp_save_offset=env_config.temp_save_offset,
+        buffer_length_seconds=file_config.buffer_length_seconds,
+        temp_save_offset=file_config.temp_save_offset,
     )
+
+
+@app.post("/api/recorder/restart")
+def restart_recorder(request: Request) -> ResponseModel:
+    if not is_local_client(request):
+        return ResponseModel(success=False, status="must_be_local", message="Recorder restart requires local access")
+
+    try:
+        subprocess.run(
+            ["s6-svc", "-r", env_config.recorder_service_path],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return ResponseModel(
+            success=False,
+            status="not_available",
+            message="s6-svc is not available in this environment",
+        )
+    except subprocess.CalledProcessError as exc:
+        return ResponseModel(
+            success=False,
+            status="restart_failed",
+            message=exc.stderr.strip() or "Failed to restart recorder",
+        )
+
+    return ResponseModel(success=True, message="Recorder restart requested")
+
 
 get_openapi(
     title=__name__,

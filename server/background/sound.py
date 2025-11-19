@@ -12,7 +12,7 @@ import sounddevice as sd
 import soundfile as sf
 
 from server import music_id
-from server.config import env_config
+from server.config import env_config, file_config
 from server.logger import logger
 from server.last_fm import get_last_fm_track, get_last_fm_artist
 from server.redis_client import sleep
@@ -26,7 +26,7 @@ from server.circular_buffer import CircularBuffer
 from server import sql_schemas
 
 buffer_lock = threading.Lock()
-buffer_size = env_config.sample_rate * env_config.buffer_length_seconds
+buffer_size = env_config.sample_rate * file_config.buffer_length_seconds
 
 
 def audio_capture(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
@@ -109,7 +109,7 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
 
                 db_track = get_db_track_from_music_id(
                     track_id=result.track.track_id,
-                    source=env_config.music_id_plugin,
+                    source=file_config.music_id_plugin,
                     track_name=result.track.track_name,
                     artist_name=result.track.artist_name,
                     album_name=result.track.album_name,
@@ -218,10 +218,10 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
         logger.info(f"Saving temp {entry.track.track_name}")
 
         if entry.started_at and entry.track.duration_seconds:
-            started_at = entry.started_at.timestamp() - env_config.temp_save_offset
-            ended_at = started_at + entry.track.duration_seconds + env_config.temp_save_offset
+            started_at = entry.started_at.timestamp() - file_config.temp_save_offset
+            ended_at = started_at + entry.track.duration_seconds + file_config.temp_save_offset
         else:
-            started_at = time.time() - env_config.buffer_length_seconds
+            started_at = time.time() - file_config.buffer_length_seconds
             ended_at = time.time()
 
         song_path = env_config.appdata_dir / "temp" / f"{entry.entry_id}.flac"
@@ -231,12 +231,12 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
             last_frame_time = timestamp_np[0]
             started_frame = clamp(
                 int((started_at - last_frame_time) * env_config.sample_rate),
-                -env_config.buffer_length_seconds * env_config.sample_rate,
+                -file_config.buffer_length_seconds * env_config.sample_rate,
                 -1,
             )
             ended_frame = clamp(
                 int((ended_at - last_frame_time) * env_config.sample_rate),
-                -env_config.buffer_length_seconds * env_config.sample_rate,
+                -file_config.buffer_length_seconds * env_config.sample_rate,
                 0,
             )
             audio_data = audio_buffer.slice(started_frame, ended_frame)

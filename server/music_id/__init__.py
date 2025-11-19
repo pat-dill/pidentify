@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from server.config import env_config
+from server.config import env_config, file_config
 from server.models import MusicIdResult
 from server.music_id.base import TrackIdPlugin
 
@@ -45,7 +45,7 @@ async def recognize_raw(raw, sample_rate, downsample_to=44100):
 
         raw_norm = 2 * (raw - raw.min()) / (raw.max() - raw.min()) - 1  # normalize
 
-        plugin = load_plugin(env_config.music_id_plugin)
+        plugin = load_plugin(file_config.music_id_plugin)
 
         audio_buffer = BytesIO()
         sf.write(audio_buffer, raw_norm, int(sample_rate / frame_skip), format=plugin.format, subtype=plugin.subtype)
