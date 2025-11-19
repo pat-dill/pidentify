@@ -1,4 +1,4 @@
-from msgpack.fallback import BytesIO
+from io import BytesIO
 
 from server.models import BaseModel, MusicIdResult
 
