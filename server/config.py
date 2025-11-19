@@ -17,13 +17,6 @@ class EnvConfig(BaseModel):
     redis_port: int = 6379
     db_url: str = "sqlite:////appdata/database.db"
 
-    device: str | None = ""
-    device_offset: float = 0  # how many seconds behind is the displayed timestamp from the actual timestamp
-    sample_rate: int = 44100
-    channels: int = 2
-    blocksize: int = 8192
-    latency: float = 1
-
     live_stats_frequency: float = 0.2
 
     duration: int = 15
@@ -34,13 +27,20 @@ class EnvConfig(BaseModel):
     recorder_service_path: Path = Path("/run/service/recorder")
 
 
-env_config = EnvConfig.model_validate(os.eniron)
+env_config = EnvConfig.model_validate(os.environ)
 config_fp = env_config.appdata_dir / "config.yaml"
 
 
 class FileConfig(BaseModel):
     class Config:
         populate_by_name = True
+    
+    device: str | None = ""
+    device_offset: float = 0  # how many seconds behind is the displayed timestamp from the actual timestamp
+    sample_rate: int = 44100
+    channels: int = 2
+    blocksize: int = 8192
+    latency: float = 1
 
     buffer_length_seconds: int = 12 * 60
     temp_save_offset: int = 30

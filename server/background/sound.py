@@ -26,28 +26,28 @@ from server.circular_buffer import CircularBuffer
 from server import sql_schemas
 
 buffer_lock = threading.Lock()
-buffer_size = env_config.sample_rate * file_config.buffer_length_seconds
+buffer_size = file_config.sample_rate * file_config.buffer_length_seconds
 
 
 def audio_capture(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
     """ Continuously captures stereo audio and updates shared memory buffer. """
 
-    frames = env_config.blocksize
+    frames = file_config.blocksize
 
     def callback(in_data, n_frames, time_, _status):
         with buffer_lock:
-            last_frame_time = time_.inputBufferAdcTime + (n_frames / env_config.sample_rate)
+            last_frame_time = time_.inputBufferAdcTime + (n_frames / file_config.sample_rate)
             last_frame_time += (time.time() - time_.currentTime)
-            timestamp_np[0] = last_frame_time + env_config.device_offset
+            timestamp_np[0] = last_frame_time + file_config.device_offset
             audio_buffer.write(in_data)
 
     with sd.InputStream(
-        samplerate=env_config.sample_rate,
+        samplerate=file_config.sample_rate,
         blocksize=frames,
-        channels=env_config.channels,
-        device=env_config.device,
+        channels=file_config.channels,
+        device=file_config.device,
         dtype="float32",
-        latency=env_config.latency,
+        latency=file_config.latency,
         callback=callback,
     ) as stream:
         logger.info("Recording... Press Ctrl+C to stop.")
@@ -77,12 +77,12 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
             time.sleep(duration)
 
             with buffer_lock:
-                clip_frames = int(duration * env_config.sample_rate)
+                clip_frames = int(duration * file_config.sample_rate)
                 audio_data = audio_buffer.read(clip_frames)
                 last_frame_time = timestamp_np[0]
 
             music_id_result = asyncio.run_coroutine_threadsafe(
-                music_id.recognize_raw(audio_data, env_config.sample_rate),
+                music_id.recognize_raw(audio_data, file_config.sample_rate),
                 loop
             ).result(10)
             result = IdentifyResult.model_validate({
@@ -181,7 +181,7 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
         except Exception as e:
             rdb.delete("now_scanning")
             logger.warning(str(e))
-            raise e
+            # raise e
 
             sleep("next_scan", back_off * env_config.duration)
             back_off = min(1.0, back_off + 0.25)
@@ -197,7 +197,7 @@ def run_live_stats(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
             time.sleep(env_config.live_stats_frequency)
 
             with buffer_lock:
-                clip_frames = int(env_config.live_stats_frequency * env_config.sample_rate)
+                clip_frames = int(env_config.live_stats_frequency * file_config.sample_rate)
                 audio_data = audio_buffer.read(clip_frames)
 
             rms = float(np.sqrt(np.mean(audio_data ** 2)))
@@ -230,18 +230,18 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
         with buffer_lock:
             last_frame_time = timestamp_np[0]
             started_frame = clamp(
-                int((started_at - last_frame_time) * env_config.sample_rate),
-                -file_config.buffer_length_seconds * env_config.sample_rate,
+                int((started_at - last_frame_time) * file_config.sample_rate),
+                -file_config.buffer_length_seconds * file_config.sample_rate,
                 -1,
             )
             ended_frame = clamp(
-                int((ended_at - last_frame_time) * env_config.sample_rate),
-                -file_config.buffer_length_seconds * env_config.sample_rate,
+                int((ended_at - last_frame_time) * file_config.sample_rate),
+                -file_config.buffer_length_seconds * file_config.sample_rate,
                 0,
             )
             audio_data = audio_buffer.slice(started_frame, ended_frame)
 
-        sf.write(song_path, audio_data, env_config.sample_rate, format="FLAC")
+        sf.write(song_path, audio_data, file_config.sample_rate, format="FLAC")
 
         # metadata = FLAC(song_path)
         # metadata["title"] = entry.track_name
@@ -285,11 +285,11 @@ def run_dump_audio(audio_buffer: CircularBuffer):
         logger.info(f"Dumping audio buffer")
 
         with buffer_lock:
-            raw = audio_buffer.read(int(seconds * env_config.sample_rate if seconds else None))
+            raw = audio_buffer.read(int(seconds * file_config.sample_rate if seconds else None))
 
         raw = normalize(raw)
         path = env_config.appdata_dir / "dump.flac"
-        sf.write(path, raw, env_config.sample_rate, format="FLAC")
+        sf.write(path, raw, file_config.sample_rate, format="FLAC")
         return ResponseModel(
             success=True,
             message="Saved audio buffer",
@@ -320,7 +320,7 @@ def run_dump_audio(audio_buffer: CircularBuffer):
 
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
-    audio_buffer = CircularBuffer((buffer_size, env_config.channels), dtype=np.float32)
+    audio_buffer = CircularBuffer((buffer_size, file_config.channels), dtype=np.float32)
 
     timestamp_np = np.ndarray((1,), dtype=np.float64)
     timestamp_np[0] = 0

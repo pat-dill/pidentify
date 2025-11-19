@@ -29,7 +29,7 @@ class AudioDataResponse(BaseModel):
     chart: list[float]
 
 
-class SaveToLibrary(BaseModel):
+class SaveToLibraryRequest(BaseModel):
     track_name: str
     track_no: int = 1
     album_name: str
@@ -114,7 +114,7 @@ async def get_audio_data(entry_id: str, request: Request) -> AudioDataResponse:
 
 
 @api.post("/{buffer_id}/save")
-def save_to_library(buffer_id: str, request: Request) -> ResponseModel:
+def save_to_library(buffer_id: str, save_data: SaveToLibraryRequest, request: Request) -> ResponseModel:
     check_auth(request)
 
     file_path = env_config.appdata_dir / "temp" / f"{buffer_id}.flac"
