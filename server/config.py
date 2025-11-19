@@ -49,22 +49,15 @@ class FileConfig(BaseModel):
 env_config = _EnvConfig.model_validate(os.environ)
 
 
-def _load_file_config() -> FileConfig:
+def load_file_config() -> FileConfig:
     config_path = env_config.appdata_dir / "config.json"
     if not config_path.is_file():
         return FileConfig()
-
-    try:
-        with config_path.open() as fp:
-            raw_data = json.load(fp)
-    except Exception as exc:  # noqa: BLE001 - log and fall back to defaults
-        print(f"Failed to load {config_path}: {exc}", flush=True)
-        return FileConfig()
-
-    return FileConfig.model_validate(raw_data)
+    
+    return FileConfig.model_validate_json(config_path.read_text())
 
 
-file_config = _load_file_config()
+file_config = load_file_config()
 
 
 class ClientConfig(BaseModel):
