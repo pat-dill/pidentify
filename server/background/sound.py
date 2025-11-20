@@ -26,7 +26,68 @@ from server.circular_buffer import CircularBuffer
 from server import sql_schemas
 
 buffer_lock = threading.Lock()
-buffer_size = file_config.sample_rate * file_config.buffer_length_seconds
+
+
+def get_effective_audio_params():
+    """Get effective sample_rate and channels, using device defaults if not specified in config."""
+    sample_rate = file_config.sample_rate
+    channels = file_config.channels
+    
+    # If either is None, query the device for defaults
+    if sample_rate is None or channels is None:
+        device_name = file_config.device if file_config.device else None
+        device_info = None
+        
+        try:
+            if device_name:
+                # Find the device by name
+                devices = sd.query_devices()
+                for dev in devices:
+                    if dev.get("name") == device_name:
+                        device_info = dev
+                        logger.info(f"Found device '{device_name}' for parameter lookup")
+                        break
+                if not device_info:
+                    logger.warning(f"Device '{device_name}' not found, using defaults")
+            else:
+                # Use default input device
+                default_device_idx = sd.default.device[0] if sd.default.device else None
+                if default_device_idx is not None:
+                    device_info = sd.query_devices(default_device_idx)
+                    logger.info(f"Using default input device (index {default_device_idx}) for parameter lookup")
+                else:
+                    logger.warning("No default input device found, using fallback defaults")
+            
+            if device_info:
+                if sample_rate is None:
+                    sample_rate = int(device_info.get("default_samplerate", 44100))
+                    logger.info(f"Using device default sample rate: {sample_rate} Hz")
+                if channels is None:
+                    # Use max_input_channels, but default to 2 (stereo) if available
+                    max_channels = device_info.get("max_input_channels", 0)
+                    channels = min(max_channels, 2) if max_channels > 0 else 2
+                    logger.info(f"Using device default channels: {channels}")
+            else:
+                # Fallback defaults if device not found
+                if sample_rate is None:
+                    sample_rate = 44100
+                    logger.info(f"Using fallback sample rate: {sample_rate} Hz")
+                if channels is None:
+                    channels = 2
+                    logger.info(f"Using fallback channels: {channels}")
+        except Exception as e:
+            logger.warning(f"Error querying device parameters: {e}, using fallback defaults")
+            if sample_rate is None:
+                sample_rate = 44100
+            if channels is None:
+                channels = 2
+    
+    return sample_rate, channels
+
+
+# Get effective audio parameters
+effective_sample_rate, effective_channels = get_effective_audio_params()
+buffer_size = effective_sample_rate * file_config.buffer_length_seconds
 
 
 def audio_capture(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
@@ -36,16 +97,16 @@ def audio_capture(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
 
     def callback(in_data, n_frames, time_, _status):
         with buffer_lock:
-            last_frame_time = time_.inputBufferAdcTime + (n_frames / file_config.sample_rate)
+            last_frame_time = time_.inputBufferAdcTime + (n_frames / effective_sample_rate)
             last_frame_time += (time.time() - time_.currentTime)
             timestamp_np[0] = last_frame_time + file_config.device_offset
             audio_buffer.write(in_data)
 
     with sd.InputStream(
-        samplerate=file_config.sample_rate,
+        samplerate=effective_sample_rate,
         blocksize=frames,
-        channels=file_config.channels,
-        device=file_config.device,
+        channels=effective_channels,
+        device=file_config.device if file_config.device else None,
         dtype="float32",
         latency=file_config.latency,
         callback=callback,
@@ -65,7 +126,7 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
     asyncio.set_event_loop(loop)
 
     back_off = 0.0  # portion of configured duration time to wait before recording again
-    duration = 0.7 * env_config.duration  # duration to record for
+    duration = 0.7 * file_config.duration  # duration to record for
     subsequent_detects = 0  # number of times the same track has been detected subsequently
 
     while True:
@@ -77,12 +138,12 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
             time.sleep(duration)
 
             with buffer_lock:
-                clip_frames = int(duration * file_config.sample_rate)
+                clip_frames = int(duration * effective_sample_rate)
                 audio_data = audio_buffer.read(clip_frames)
                 last_frame_time = timestamp_np[0]
 
             music_id_result = asyncio.run_coroutine_threadsafe(
-                music_id.recognize_raw(audio_data, file_config.sample_rate),
+                music_id.recognize_raw(audio_data, effective_sample_rate),
                 loop
             ).result(10)
             result = IdentifyResult.model_validate({
@@ -141,7 +202,7 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                     subsequent_detects = 0
                     back_off = 0
 
-                expire_after = timedelta(seconds=max(0, remaining_seconds) + (env_config.duration + 5) * 3)
+                expire_after = timedelta(seconds=max(0, remaining_seconds) + (file_config.duration + 5) * 3)
 
                 rdb.set("now_playing", result.model_dump_json(), px=expire_after)
                 rdb.set("track_id", str(db_track.track_guid), px=expire_after)
@@ -152,17 +213,17 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                     f"({remaining_seconds}s remaining)"
                 )
 
-                if remaining_seconds < 2 * env_config.duration + 3:
+                if remaining_seconds < 2 * file_config.duration + 3:
                     if remaining_seconds == 0:
-                        duration = env_config.duration
+                        duration = file_config.duration
                     else:
                         # try to fetch the next song faster for a quick update
-                        duration = 0.7 * env_config.duration
+                        duration = 0.7 * file_config.duration
                         sleep("next_scan", max(0, remaining_seconds + 1))
 
                 else:
-                    duration = env_config.duration
-                    sleep("next_scan", back_off * env_config.duration)
+                    duration = file_config.duration
+                    sleep("next_scan", back_off * file_config.duration)
                     back_off = min(1.0, back_off + 0.25)
 
             else:
@@ -170,8 +231,8 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                 if rdb.get("track_id"):
                     back_off = 0
 
-                duration = env_config.duration
-                sleep("next_scan", back_off * env_config.duration)
+                duration = file_config.duration
+                sleep("next_scan", back_off * file_config.duration)
                 back_off = min(1.0, back_off + 0.25)
                 subsequent_detects = 0
 
@@ -183,9 +244,9 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
             logger.warning(str(e))
             # raise e
 
-            sleep("next_scan", back_off * env_config.duration)
+            sleep("next_scan", back_off * file_config.duration)
             back_off = min(1.0, back_off + 0.25)
-            duration = env_config.duration
+            duration = file_config.duration
             subsequent_detects = 0
 
 
@@ -197,7 +258,7 @@ def run_live_stats(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
             time.sleep(env_config.live_stats_frequency)
 
             with buffer_lock:
-                clip_frames = int(env_config.live_stats_frequency * file_config.sample_rate)
+                clip_frames = int(env_config.live_stats_frequency * effective_sample_rate)
                 audio_data = audio_buffer.read(clip_frames)
 
             rms = float(np.sqrt(np.mean(audio_data ** 2)))
@@ -230,18 +291,18 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
         with buffer_lock:
             last_frame_time = timestamp_np[0]
             started_frame = clamp(
-                int((started_at - last_frame_time) * file_config.sample_rate),
-                -file_config.buffer_length_seconds * file_config.sample_rate,
+                int((started_at - last_frame_time) * effective_sample_rate),
+                -file_config.buffer_length_seconds * effective_sample_rate,
                 -1,
             )
             ended_frame = clamp(
-                int((ended_at - last_frame_time) * file_config.sample_rate),
-                -file_config.buffer_length_seconds * file_config.sample_rate,
+                int((ended_at - last_frame_time) * effective_sample_rate),
+                -file_config.buffer_length_seconds * effective_sample_rate,
                 0,
             )
             audio_data = audio_buffer.slice(started_frame, ended_frame)
 
-        sf.write(song_path, audio_data, file_config.sample_rate, format="FLAC")
+        sf.write(song_path, audio_data, effective_sample_rate, format="FLAC")
 
         # metadata = FLAC(song_path)
         # metadata["title"] = entry.track_name
@@ -285,11 +346,11 @@ def run_dump_audio(audio_buffer: CircularBuffer):
         logger.info(f"Dumping audio buffer")
 
         with buffer_lock:
-            raw = audio_buffer.read(int(seconds * file_config.sample_rate if seconds else None))
+            raw = audio_buffer.read(int(seconds * effective_sample_rate if seconds else None))
 
         raw = normalize(raw)
         path = env_config.appdata_dir / "dump.flac"
-        sf.write(path, raw, file_config.sample_rate, format="FLAC")
+        sf.write(path, raw, effective_sample_rate, format="FLAC")
         return ResponseModel(
             success=True,
             message="Saved audio buffer",
@@ -320,7 +381,7 @@ def run_dump_audio(audio_buffer: CircularBuffer):
 
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
-    audio_buffer = CircularBuffer((buffer_size, file_config.channels), dtype=np.float32)
+    audio_buffer = CircularBuffer((buffer_size, effective_channels), dtype=np.float32)
 
     timestamp_np = np.ndarray((1,), dtype=np.float64)
     timestamp_np[0] = 0

@@ -12,6 +12,8 @@ export const clientConfigSchema = z.object({
   can_edit_history: z.boolean(),
   buffer_length_seconds: z.number(),
   temp_save_offset: z.number(),
+  initial_setup_complete: z.boolean(),
+  is_admin: z.boolean(),
 });
 export type ClientConfigT = z.infer<typeof clientConfigSchema>;
 

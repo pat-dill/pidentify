@@ -20,9 +20,6 @@ class EnvConfig(BaseModel):
 
     live_stats_frequency: float = 0.2
 
-    duration: int = 15
-    silence_threshold: float = 0.0004
-
     appdata_dir: Path = Path("/etc/pidentify/config")
     music_library_dir: Path = Path("/etc/pidentify/music")
     recorder_service_path: Path = Path("/run/service/recorder")
@@ -39,10 +36,13 @@ class FileConfig(BaseModel):
     
     device: str | None = ""
     device_offset: float = 0  # how many seconds behind is the displayed timestamp from the actual timestamp
-    sample_rate: int = 44100
-    channels: int = 2
+    sample_rate: int | None = None
+    channels: int | None = None
     blocksize: int = 8192
     latency: float = 1
+
+    duration: int = 15
+    silence_threshold: float = 0.0004
 
     buffer_length_seconds: int = 12 * 60
     temp_save_offset: int = 30
@@ -51,9 +51,11 @@ class FileConfig(BaseModel):
     music_id_plugin: str = ""
 
     admin_username: str = "admin"
-    admin_password_hash: str = ""
+    admin_password_hash: str | None = None
 
     jwt_secret_key: str = secrets.token_urlsafe(32)
+
+    initial_setup_complete: bool = False
     
     def save(self):
         yaml_str = yaml.dump(self.model_dump(exclude_defaults=True))
@@ -80,5 +82,5 @@ class ClientConfig(BaseModel):
     can_edit_history: bool
     buffer_length_seconds: int
     temp_save_offset: int
-
-
+    initial_setup_complete: bool
+    is_admin: bool

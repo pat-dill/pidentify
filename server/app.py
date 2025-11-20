@@ -7,20 +7,22 @@ from pathlib import Path
 import httpx
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
+from sqlalchemy.sql import true
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 
+from server.auth import get_session, is_admin
 from server.models import ResponseModel, LyricLine, Lyrics
 from server.utils import safe_filename, is_local_client
-from .config import ClientConfig, env_config, file_config
-from .exceptions import ErrorResponse
+from server.config import ClientConfig, FileConfig, env_config
+from server.exceptions import ErrorResponse
 
 sys.path.append(str(Path(__file__).parents))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server.redis_client import get_redis
-from server.routes import status, history, rip_tool, auth
+from server.routes import status, history, rip_tool, auth, settings
 from server.routes.status import get_status
 
 app = FastAPI()
@@ -36,6 +38,8 @@ app.include_router(status.api)
 app.include_router(history.api)
 app.include_router(rip_tool.api)
 app.include_router(auth.api)
+app.include_router(settings.api)
+
 
 @app.post("/api/scan-now")
 def scan_now(request: Request) -> ResponseModel:
@@ -125,12 +129,17 @@ def get_current_lyrics():
 @app.get("/api/config")
 async def get_client_config(request: Request) -> ClientConfig:
     is_local = is_local_client(request)
+
+    file_config = FileConfig.load()
+
     return ClientConfig(
         can_skip=is_local,
         can_save=is_local,
         can_edit_history=is_local,
         buffer_length_seconds=file_config.buffer_length_seconds,
         temp_save_offset=file_config.temp_save_offset,
+        initial_setup_complete=file_config.initial_setup_complete,
+        is_admin=is_admin(request),
     )
 
 

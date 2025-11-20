@@ -5,7 +5,9 @@ from pydantic import Field
 from server.models import BaseModel
 from server.utils import utcnow
 
-from server.config import file_config
+from server.config import FileConfig, file_config
+
+from starlette.requests import Request
 
 
 class SessionToken(BaseModel):
@@ -27,3 +29,23 @@ def check_password(password: str, hashed_pw: str) -> bool:
         return ph.verify(hashed_pw, password)
     except Exception:
         return False
+
+
+def get_session(request: Request) -> SessionToken | None:
+    token = request.cookies.get("session")
+    if token:
+        try:
+            return SessionToken.decode_jwt(token)
+        except Exception:
+            return None
+    
+    return None
+
+
+def is_admin(request: Request) -> bool:
+    file_config = FileConfig.load()
+    if file_config.admin_password_hash:
+        session = get_session(request)
+        return session.is_admin if session else False
+    else:
+        return True

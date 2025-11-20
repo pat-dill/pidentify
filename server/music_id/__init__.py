@@ -33,7 +33,7 @@ async def recognize_raw(raw, sample_rate, downsample_to=44100):
     raw = np.array(raw, np.float32)
 
     rms = float(np.sqrt(np.mean(raw ** 2)))
-    if rms < env_config.silence_threshold:
+    if rms < file_config.silence_threshold:
         return MusicIdResult(
             success=False,
             message=f"No sound detected. RMS: {rms}",

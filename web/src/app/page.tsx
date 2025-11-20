@@ -5,6 +5,7 @@ import { getQueryClient } from "@/utils/getQueryClient";
 import { prefetchHistory } from "@/api/history/getHistory";
 import { StatusContextProvider } from "@/contexts/StatusContext";
 import Debug from "@/components/Debug";
+import SettingsButton from "@/components/SettingsButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +22,7 @@ export default async function Home() {
         <NowPlayingPage />
 
         <Debug />
+        <SettingsButton />
       </StatusContextProvider>
     </HydrationBoundary>
   );
