@@ -60,8 +60,8 @@ export function ThemeProvider({
     : "rgba(0, 0, 0, 0.45)";
 
   const colorTextPlaceholder = lightText
-    ? "rgba(255, 255, 255, 0.25)"
-    : "rgba(0, 0, 0, 0.25)";
+    ? "rgba(255, 255, 255, 0.5)"
+    : "rgba(0, 0, 0, 0.5)";
 
   useLayoutEffect(() => {
     if (root) {

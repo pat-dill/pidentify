@@ -2,6 +2,7 @@ import asyncio
 from concurrent.futures.process import ProcessPoolExecutor
 
 from fastapi import APIRouter
+from pydantic_core.core_schema import NoneSchema
 from sqlalchemy_utils.types.password import passlib
 from starlette.requests import Request
 
@@ -21,6 +22,28 @@ import sounddevice as sd
 # == Request/Response models ==
 
 
+class UpdateSettingsRequest(BaseModel):
+    device: str | None = None
+    device_offset: float | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
+    blocksize: int | None = None
+    latency: float | None = None
+
+    duration: int | None = None
+    silence_threshold: float | None = None
+
+    buffer_length_seconds: int | None = None
+    temp_save_offset: int | None = None
+
+    last_fm_key: str | None = None
+    music_id_plugin: str | None = None
+
+    admin_username: str | None = None
+    old_password: str | None = None
+    new_password: str | None = None
+
+
 # == API routes ==
 
 api = APIRouter(prefix="/api/settings")
@@ -33,6 +56,24 @@ def get_settings(request: Request) -> FileConfig:
         raise ErrorResponse(403, "not_authorized")
 
     return FileConfig.load()
+
+
+@api.patch("/")
+@api.patch("")
+def update_settings(request: Request, data: UpdateSettingsRequest) -> FileConfig:
+    if not is_admin(request):
+        raise ErrorResponse(403, "not_authorized")
+    
+    config = FileConfig.load()
+    config_updates = data.model_dump(exclude_unset=True)
+
+    for key, value in config_updates.items():
+        if hasattr(config, key):
+            setattr(config, key, value)
+
+    config.save()
+
+    return config
 
 
 @api.get("/devices")

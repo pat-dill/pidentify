@@ -1,11 +1,10 @@
 "use client";
 
-// import Settings from "@/features/Settings/Settings";
 import { FloatingCurrentTrack } from "@/features/NowPlaying/FloatingCurrentTrack";
 import { Flex, Typography } from "antd";
 import { SoundSettingsForm } from "./SoundSettings";
 import { AudioOutlined } from "@ant-design/icons";
-import { Section } from "./Section";
+import { FormSection } from "./FormSection";
 
 export function SettingsPage() {
   return (
@@ -26,13 +25,13 @@ export function SettingsPage() {
           </Typography.Title>
 
           <Flex vertical gap={8}>
-            <Section
-              title="Sound"
-              description="Configure the input sound device"
+            <FormSection
+              title="Audio"
+              description="Configure the input audio device"
               icon={<AudioOutlined />}
             >
               <SoundSettingsForm />
-            </Section>
+            </FormSection>
           </Flex>
         </div>
       </Flex>
