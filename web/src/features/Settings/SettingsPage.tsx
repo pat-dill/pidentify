@@ -3,8 +3,9 @@
 import { FloatingCurrentTrack } from "@/features/NowPlaying/FloatingCurrentTrack";
 import { Flex, Typography } from "antd";
 import { SoundSettingsForm } from "./SoundSettings";
-import { AudioOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, AudioOutlined } from "@ant-design/icons";
 import { FormSection } from "./FormSection";
+import { AppConnectionsForm } from "./AppConnections";
 
 export function SettingsPage() {
   return (
@@ -24,7 +25,7 @@ export function SettingsPage() {
             Settings
           </Typography.Title>
 
-          <Flex vertical gap={8}>
+          <Flex vertical gap={16}>
             <FormSection
               title="Audio"
               description="Configure the input audio device"
@@ -32,11 +33,19 @@ export function SettingsPage() {
             >
               <SoundSettingsForm />
             </FormSection>
+
+            <FormSection
+              title="Connections"
+              description="Third party connections"
+              icon={<AppstoreOutlined />}
+            >
+              <AppConnectionsForm />
+            </FormSection>
           </Flex>
         </div>
       </Flex>
 
-      {/* <FloatingCurrentTrack /> */}
+      <FloatingCurrentTrack />
     </>
   );
 }

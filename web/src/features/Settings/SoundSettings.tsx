@@ -97,7 +97,7 @@ export function SoundSettingsForm() {
           style={{ width: "50%" }}
           tooltip="Length of the audio buffer to store in memory; this is the maximum duration of a song that can be saved."
         >
-          <InputNumber style={{ width: "100%" }} suffix="seconds" />
+          <InputNumber style={{ width: "100%" }} min={60} suffix="seconds" />
         </Form.Item>
 
         <Form.Item
@@ -109,7 +109,7 @@ export function SoundSettingsForm() {
           style={{ width: "50%" }}
           tooltip="Length of the audio buffer to send to the Music ID plugin."
         >
-          <InputNumber style={{ width: "100%" }} suffix="seconds" />
+          <InputNumber style={{ width: "100%" }} min={8} max={15} suffix="seconds" />
         </Form.Item>
       </Flex>
     </>

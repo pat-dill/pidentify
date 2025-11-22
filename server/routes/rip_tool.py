@@ -1,5 +1,6 @@
 import asyncio
 from concurrent.futures.process import ProcessPoolExecutor
+from pathlib import Path
 
 from fastapi import APIRouter
 from starlette.requests import Request
@@ -10,8 +11,8 @@ from server.db import get_history_entry
 from server.exceptions import ErrorResponse
 from server.models import HistoryEntry, ResponseModel, BaseModel
 from server.redis_client import get_redis
-from server.rip_tool.audio_data import get_audio_data_chart
-from server.utils import is_local_client
+from server.rip_tool.audio_data import get_audio_data_chart, trim_and_save_audio, get_image_extension_from_url
+from server.utils import is_local_client, safe_filename
 
 
 # Request/Response models
@@ -36,6 +37,8 @@ class SaveToLibraryRequest(BaseModel):
     artist_name: str
     start_offset: float
     duration_seconds: float
+    track_image: str | None = None
+    artist_image: str | None = None
 
 
 # API
@@ -122,5 +125,64 @@ def save_to_library(buffer_id: str, save_data: SaveToLibraryRequest, request: Re
     if not file_path.is_file():
         raise ErrorResponse(code=404, status="rip_not_found", message="Audio buffer not found")
 
-    # TODO
-    pass
+    # Determine which images to use and whether to overwrite
+    # Client-provided images override defaults and should overwrite existing files
+    # Default images from database should only be used if file doesn't exist
+    
+    # Get default images from history entry
+    entry = get_history_entry(buffer_id)
+    default_track_image = entry.track.track_image if entry and entry.track else None
+    default_artist_image = entry.track.artist_image if entry and entry.track else None
+    
+    # Use client-provided images if provided, otherwise use defaults
+    track_image = save_data.track_image if save_data.track_image else default_track_image
+    artist_image = save_data.artist_image if save_data.artist_image else default_artist_image
+    
+    # Determine overwrite flags: True if client provided image, False if using default
+    track_image_overwrite = save_data.track_image is not None
+    artist_image_overwrite = save_data.artist_image is not None
+    
+    # For default images, check if file already exists (don't overwrite)
+    if not track_image_overwrite and track_image:
+        safe_artist = safe_filename(save_data.artist_name)
+        safe_album = safe_filename(save_data.album_name)
+        library_dir = env_config.music_library_dir / safe_artist / safe_album
+        ext = get_image_extension_from_url(track_image)
+        album_cover_path = (library_dir / "cover").with_suffix(ext)
+        if album_cover_path.exists():
+            track_image = None  # Skip downloading if already exists
+    
+    if not artist_image_overwrite and artist_image:
+        safe_artist = safe_filename(save_data.artist_name)
+        artist_dir = env_config.music_library_dir / safe_artist
+        ext = get_image_extension_from_url(artist_image)
+        artist_cover_path = (artist_dir / "cover").with_suffix(ext)
+        if artist_cover_path.exists():
+            artist_image = None  # Skip downloading if already exists
+
+    try:
+        saved_path = trim_and_save_audio(
+            source_path=file_path,
+            start_offset=save_data.start_offset,
+            duration_seconds=save_data.duration_seconds,
+            track_name=save_data.track_name,
+            track_no=save_data.track_no,
+            album_name=save_data.album_name,
+            artist_name=save_data.artist_name,
+            track_image=track_image,
+            artist_image=artist_image,
+            track_image_overwrite=track_image_overwrite,
+            artist_image_overwrite=artist_image_overwrite,
+        )
+        
+        return ResponseModel(
+            success=True,
+            message="Audio saved to library",
+            data=str(saved_path)
+        )
+    except Exception as e:
+        raise ErrorResponse(
+            code=500,
+            status="save_failed",
+            message=f"Failed to save audio: {str(e)}"
+        )

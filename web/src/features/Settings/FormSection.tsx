@@ -7,7 +7,7 @@ import { getTouchedValues } from "@/utils/getTouchedValues";
 import { Button, Card, Divider, Flex, Form } from "antd";
 import { ReactNode, useState } from "react";
 
-type SectionProps = {
+type FormSectionProps = {
   title: string;
   description: string;
   icon: ReactNode;
@@ -15,7 +15,7 @@ type SectionProps = {
   initialValues?: Record<string, any>;
 };
 
-export function FormSection(props: SectionProps) {
+export function FormSection(props: FormSectionProps) {
   const { title, icon, children } = props;
 
   const [form] = Form.useForm();
