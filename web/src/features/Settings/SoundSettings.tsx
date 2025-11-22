@@ -13,8 +13,8 @@ export function SoundSettingsForm() {
       devices
         ?.filter((device) => device.max_input_channels > 0)
         ?.map((device) => ({
-          label: device.name,
-          value: device.name,
+          label: device.name.split(" (hw")[0],
+          value: device.name.split(" (hw")[0],
         })) ?? []
     );
   }, [devices]);
