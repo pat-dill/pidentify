@@ -43,7 +43,7 @@ def get_effective_audio_params():
                 # Find the device by name
                 devices = sd.query_devices()
                 for dev in devices:
-                    if dev.get("name") == device_name:
+                    if dev.get("name", "").startswith(device_name):
                         device_info = dev
                         logger.info(f"Found device '{device_name}' for parameter lookup")
                         break
