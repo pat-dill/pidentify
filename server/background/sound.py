@@ -14,7 +14,7 @@ import soundfile as sf
 from server import music_id
 from server.config import env_config, file_config
 from server.logger import logger
-from server.last_fm import get_last_fm_track, get_last_fm_artist
+from server.last_fm import get_last_fm_track, get_last_fm_artist, get_last_fm_album, extract_track_number_from_last_fm
 from server.redis_client import sleep
 from server.db import save_history_entry, get_history_entries, get_db_track_from_music_id
 from server.utils import utcnow, normalize
@@ -156,9 +156,19 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                 result.started_at = (result.recorded_at - timedelta(seconds=result.track.offset)).replace(microsecond=0)
 
                 async def _fetch_meta():
-                    result.last_fm_track, result.last_fm_artist = await asyncio.gather(
+                    # Fetch all metadata in parallel
+                    async def _get_album():
+                        if result.track.album_name:
+                            return await get_last_fm_album(
+                                result.track.artist_name.split(" & ")[0],
+                                result.track.album_name
+                            )
+                        return None
+                    
+                    result.last_fm_track, result.last_fm_artist, result.last_fm_album = await asyncio.gather(
                         get_last_fm_track(result.track.track_name, result.track.artist_name),
                         get_last_fm_artist(result.track.artist_name.split(" & ")[0]),
+                        _get_album(),
                     )
 
                 asyncio.run_coroutine_threadsafe(_fetch_meta(), loop).result(10)
@@ -168,12 +178,20 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                 elif result.last_fm_track and (duration_seconds := result.last_fm_track.duration_seconds):
                     result.duration_seconds = duration_seconds
 
+                # Extract track number from LastFM data
+                if not result.track.track_no and result.last_fm_track and result.last_fm_album:
+                    track_data = result.last_fm_track.model_dump()
+                    track_no = extract_track_number_from_last_fm(track_data, result.last_fm_album)
+                    result.track.track_no = track_no
+
+
                 db_track = get_db_track_from_music_id(
                     track_id=result.track.track_id,
                     source=file_config.music_id_plugin,
                     track_name=result.track.track_name,
                     artist_name=result.track.artist_name,
                     album_name=result.track.album_name,
+                    track_no=result.track.track_no,
                     label=result.track.label,
                     released=result.track.released,
                     track_image=result.track.track_image,

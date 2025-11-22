@@ -30,6 +30,7 @@ class LastFMTrack(BaseModel):
     duration: int = 0
     duration_seconds: float = 0.0
     artist: dict = Field(default_factory=dict)
+    album: dict = Field(default_factory=dict)
     wiki: Optional[dict[str, str]] = None
     top_tags: dict = Field(alias="toptags", default_factory=lambda: dict(tag=[]))
 
@@ -64,6 +65,7 @@ class MusicIdTrack(BaseModel):
     track_name: str
     artist_name: str | None = None
     album_name: str | None = None
+    track_no: int | None = None
     label: str | None = None
     released: str | None = None
     track_image: str | None = None
@@ -82,6 +84,7 @@ class IdentifyResult(MusicIdResult):
     started_at: datetime | None = None
     last_fm_track: LastFMTrack | None = None
     last_fm_artist: LastFMArtist | None = None
+    last_fm_album: dict | None = None
     rms: float | None = None
     duration_seconds: float | None = None
 
@@ -99,6 +102,7 @@ class DbTrack(BaseModel):
     track_name: str
     artist_name: str | None = None
     album_name: str | None = None
+    track_no: int | None = None
     label: str | None = None
     released: str | None = None
     track_image: str | None = None
@@ -120,6 +124,7 @@ class HistoryEntry(BaseModel):
     started_at: datetime | None = None
 
     saved_temp_buffer: bool
+    saved_to_library: bool
 
     track: DbTrack | None = None
 

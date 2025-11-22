@@ -3,11 +3,12 @@ from concurrent.futures.process import ProcessPoolExecutor
 from pathlib import Path
 
 from fastapi import APIRouter
+from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import FileResponse
 
 from server.config import env_config
-from server.db import get_history_entry
+from server.db import get_history_entry, update_history_entries
 from server.exceptions import ErrorResponse
 from server.models import HistoryEntry, ResponseModel, BaseModel
 from server.redis_client import get_redis
@@ -36,7 +37,7 @@ class SaveToLibraryRequest(BaseModel):
     album_name: str
     artist_name: str
     start_offset: float
-    duration_seconds: float
+    end_offset: float = Field(..., ge=0, description="Offset from end of file (negative or zero)")
     track_image: str | None = None
     artist_image: str | None = None
 
@@ -164,7 +165,7 @@ def save_to_library(buffer_id: str, save_data: SaveToLibraryRequest, request: Re
         saved_path = trim_and_save_audio(
             source_path=file_path,
             start_offset=save_data.start_offset,
-            duration_seconds=save_data.duration_seconds,
+            end_offset=save_data.end_offset,
             track_name=save_data.track_name,
             track_no=save_data.track_no,
             album_name=save_data.album_name,
@@ -175,14 +176,23 @@ def save_to_library(buffer_id: str, save_data: SaveToLibraryRequest, request: Re
             artist_image_overwrite=artist_image_overwrite,
         )
         
+        # Update history entry to mark it as saved to library
+        if entry:
+            update_history_entries(
+                dict(entry_id=entry.entry_id),
+                saved_to_library=True
+            )
+        
         return ResponseModel(
             success=True,
             message="Audio saved to library",
             data=str(saved_path)
         )
     except Exception as e:
-        raise ErrorResponse(
-            code=500,
-            status="save_failed",
-            message=f"Failed to save audio: {str(e)}"
-        )
+        raise e
+
+        # raise ErrorResponse(
+        #     code=500,
+        #     status="save_failed",
+        #     message=f"Failed to save audio: {str(e)}"
+        # )

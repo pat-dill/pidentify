@@ -39,6 +39,7 @@ export const trackSchema = z.object({
   track_guid: z.string().nullish(),
   duration_seconds: z.number().nullish(),
   track_name: z.string(),
+  track_no: z.number().nullish(),
   artist_name: z.string().nullish(),
   album_name: z.string().nullish(),
   track_image: z.string().nullish(),
@@ -67,5 +68,6 @@ export const historyEntrySchema = z.object({
   started_at: z.string().nullish(),
   track: trackSchema,
   saved_temp_buffer: z.boolean(),
+  saved_to_library: z.boolean(),
 });
 export type HistoryEntryT = z.infer<typeof historyEntrySchema>;

@@ -1,4 +1,7 @@
-import os
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parents[2]))
+
 from logging.config import fileConfig
 
 from alembic import context

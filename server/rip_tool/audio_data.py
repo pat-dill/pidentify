@@ -85,7 +85,7 @@ def download_and_save_image(image_url: str | None, base_output_path: Path, overw
 def trim_and_save_audio(
     source_path: Path,
     start_offset: float,
-    duration_seconds: float,
+    end_offset: float,
     track_name: str,
     track_no: int,
     album_name: str,
@@ -100,8 +100,8 @@ def trim_and_save_audio(
     
     Args:
         source_path: Path to source audio file
-        start_offset: Start offset in seconds
-        duration_seconds: Duration to extract in seconds
+        start_offset: Start offset in seconds from the beginning of the file
+        end_offset: End offset in seconds from the end of the file
         track_name: Track name
         track_no: Track number
         album_name: Album name
@@ -119,13 +119,16 @@ def trim_and_save_audio(
         sf = soundfile.SoundFile(file)
         sample_rate = sf.samplerate
         total_frames = sf.frames
+        total_duration = total_frames / sample_rate
         
         # Read entire audio file
         full_audio = sf.read(total_frames, always_2d=True)
     
     # Calculate frame range for trimming
+    # start_offset is from the beginning of the file
+    # end_offset is from the end of the file (negative or zero)
     start_frame = int(start_offset * sample_rate)
-    end_frame = int((start_offset + duration_seconds) * sample_rate)
+    end_frame = int((total_duration - end_offset) * sample_rate)
     
     # Ensure we don't exceed file bounds
     start_frame = max(0, min(start_frame, total_frames))
