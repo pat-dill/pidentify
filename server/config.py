@@ -16,7 +16,7 @@ class EnvConfig(BaseModel):
 
     redis_host: str = "localhost"
     redis_port: int = 6379
-    db_url: str = "sqlite:////appdata/database.db"
+    db_url: str = "sqlite:////etc/pidentify/config/database.db"
 
     live_stats_frequency: float = 0.2
 
