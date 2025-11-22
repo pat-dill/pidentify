@@ -26,7 +26,7 @@ export function StatusContextProvider({
       : HTTP_WEBSOCKET_URL;
   });
 
-  const websocket = useWebSocket(websocketUrl);
+  const websocket = useWebSocket(websocketUrl as string);
   const { data: httpStatus } = useStatusHttp({
     live: websocket.readyState !== ReadyState.OPEN,
     suspend,

@@ -68,7 +68,7 @@ export function RipSongPage() {
 
   const submitForm = async (values: FormFields) => {
     const { trackName, album, artist, trackNumber } = values;
-    const trackNo = trackNumber ? parseInt(trackNumber) : 1;
+    const trackNo = trackNumber ?? 1;
     saveRipToLibraryMut.mutate({
       buffer_id: entryId,
       data: {
