@@ -48,7 +48,7 @@ COPY rootfs/ /
 RUN chmod +x /etc/services.d/api/run /etc/services.d/recorder/run /etc/cont-init.d/00-migrations
 
 # Create volumes
-VOLUME ["/etc/pidentify/config", "/etc/pidentify/music"]
+VOLUME ["/etc/pidentify/config", "/etc/pidentify/music", "/server/music_id/plugins"]
 
 EXPOSE 8000
 
