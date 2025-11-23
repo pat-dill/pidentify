@@ -4,7 +4,7 @@ import { toastPortal } from "@/components/Toast";
 import clsx from "clsx";
 import CurrentTrack from "@/features/NowPlaying/CurrentTrack";
 import AboutTrack from "@/components/AboutTrack";
-import { LastFMTrackT } from "@/schemas";
+import { AlbumT, LastFMTrackT } from "@/schemas";
 import AboutArtist from "@/components/AboutArtist";
 import History from "@/features/History/History";
 import { useStatus } from "@/contexts/StatusContext";
@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useLyrics } from "@/api/getLyrics";
 import { LyricsMini } from "@/components/Lyrics";
 import dayjs from "dayjs";
+import AlbumOverview from "@/components/AlbumOverview";
 
 export function NowPlayingPage() {
   const status = useStatus();
@@ -57,6 +58,10 @@ export function NowPlayingPage() {
 
               {status.last_fm_track?.wiki?.summary && (
                 <AboutTrack track={status.last_fm_track as LastFMTrackT} />
+              )}
+
+              {status.last_fm_album?.tracks?.track && (
+                <AlbumOverview album={status.last_fm_album as AlbumT} />
               )}
 
               {status.track && status.last_fm_artist && (

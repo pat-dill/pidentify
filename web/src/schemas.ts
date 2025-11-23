@@ -50,6 +50,35 @@ export const trackSchema = z.object({
 
 export type TrackT = z.infer<typeof trackSchema>;
 
+export const albumSchema = z.object({
+  artist: z.string(),
+  name: z.string(),
+  url: z.string(),
+  wiki: z
+    .object({
+      content: z.string(),
+    })
+    .nullish(),
+  tracks: z
+    .object({
+      track: z.array(
+        z.object({
+          name: z.string(),
+          url: z.string(),
+          duration: z.number().nullish(),
+          "@attr": z
+            .object({
+              rank: z.number(),
+            })
+            .nullish(),
+        }),
+      ),
+    })
+    .nullish(),
+});
+
+export type AlbumT = z.infer<typeof albumSchema>;
+
 export const lyricsSchema = z.object({
   synced: z.boolean(),
   lines: z.array(
