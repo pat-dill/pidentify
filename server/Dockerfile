@@ -43,9 +43,9 @@ RUN poetry install --no-interaction --no-ansi
 COPY . .
 
 # Ensure helper scripts are executable
-RUN chmod +x ./scripts/*.sh
+RUN chmod +x ./scripts/*.sh ./scripts/*.py
 COPY rootfs/ /
-RUN chmod +x /etc/services.d/api/run /etc/services.d/recorder/run /etc/cont-init.d/00-migrations
+RUN chmod +x /etc/services.d/api/run /etc/services.d/recorder/run /etc/cont-init.d/00-migrations /etc/cont-init.d/01-plugin-requirements
 
 # Create volumes
 VOLUME ["/etc/pidentify/config", "/etc/pidentify/music", "/server/music_id/plugins"]
