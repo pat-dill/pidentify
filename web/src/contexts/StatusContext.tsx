@@ -5,6 +5,7 @@ import { statusSchema, StatusT, useStatusHttp } from "@/api/getStatus";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { AutoThemeProvider } from "@/contexts/ThemeContext";
 import useSafeClientSplit from "@/utils/useSafeClientSplit";
+import { useWebsocketHost } from "@/api/useWebsocketHost";
 
 type StatusContextT = StatusT | undefined;
 
@@ -20,15 +21,9 @@ export function StatusContextProvider({
   children: ReactNode;
   suspend?: boolean;
 }) {
-  const websocketUrl = useSafeClientSplit(() => {
-    return window.location.protocol === "https:"
-      ? HTTPS_WEBSOCKET_URL
-      : HTTP_WEBSOCKET_URL;
-  });
+  const { data: websocketHost } = useWebsocketHost();
 
-  console.log(websocketUrl);
-
-  const websocket = useWebSocket(websocketUrl as string);
+  const websocket = useWebSocket(`${websocketHost || ""}/api/status/ws`);
   const { data: httpStatus } = useStatusHttp({
     live: websocket.readyState !== ReadyState.OPEN,
     suspend,

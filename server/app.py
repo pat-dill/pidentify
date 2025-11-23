@@ -171,6 +171,14 @@ def restart_recorder(request: Request) -> ResponseModel:
     return ResponseModel(success=True, message="Recorder restart requested")
 
 
+@app.get("/api/websocket-host")
+async def get_websocket_host(request: Request) -> str:
+    if request.url.scheme == "https":
+        return env_config.https_websocket_url
+    else:
+        return env_config.http_websocket_url
+
+
 get_openapi(
     title=__name__,
     version="0.1",

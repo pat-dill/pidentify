@@ -18,6 +18,9 @@ class EnvConfig(BaseModel):
     redis_port: int = 6379
     db_url: str = "sqlite:////etc/pidentify/config/database.db"
 
+    http_websocket_url: str = ""
+    https_websocket_url: str = ""
+
     live_stats_frequency: float = 0.2
 
     appdata_dir: Path = Path("/etc/pidentify/config")
