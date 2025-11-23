@@ -1,7 +1,6 @@
 import { post } from "./request";
 
-export async function restartRecorder(): Promise<boolean> {
-  await post("/api/recorder/restart");
-  return true;
+export function restartRecorder(): Promise<Response> {
+  return post("/api/recorder/restart");
 }
 
