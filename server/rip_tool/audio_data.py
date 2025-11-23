@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
+import numpy as np
 import soundfile
 from mutagen.flac import FLAC
 
@@ -18,7 +19,7 @@ def get_audio_data_chart(file_path: Path, parts: int):
         raw_audio = sf.read(sf.frames, always_2d=True)
 
     return duration, [
-        statistics.mean(abs(v[0]) ** 2 for v in chunk)
+        np.percentile(np.abs(chunk[:, 0]), 95) ** 2
         for chunk in chunk_list(raw_audio, parts)
     ]
 
