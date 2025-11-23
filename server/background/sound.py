@@ -128,11 +128,38 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
     back_off = 0.0  # portion of configured duration time to wait before recording again
     duration = 0.7 * file_config.duration  # duration to record for
     subsequent_detects = 0  # number of times the same track has been detected subsequently
+    is_waiting = True  # True when waiting for sound, False when actively scanning
 
     while True:
         rdb = get_redis()
 
         try:
+            if is_waiting:
+                # Waiting mode: poll every second and check RMS
+                rdb.delete("now_scanning")
+                rdb.set("status", "waiting", px=timedelta(seconds=2))
+                logger.debug("Waiting for sound...")
+                time.sleep(1.0)
+
+                with buffer_lock:
+                    # Check RMS of the last 1 second
+                    check_frames = int(1.0 * effective_sample_rate)
+                    audio_data = audio_buffer.read(check_frames)
+                    last_frame_time = timestamp_np[0]
+
+                rms = float(np.sqrt(np.mean(audio_data ** 2)))
+                
+                if rms >= file_config.silence_threshold:
+                    # Sound detected, switch to scanning mode
+                    logger.info(f"Sound detected (RMS: {rms}), starting scan...")
+                    is_waiting = False
+                    rdb.delete("status")
+                    # Continue to scanning logic below
+                else:
+                    # Still no sound, continue waiting
+                    continue
+
+            # Scanning mode: perform full music identification
             rdb.set("now_scanning", (utcnow() + timedelta(seconds=duration)).isoformat())
             logger.info(f"scanning {duration}s...")
             time.sleep(duration)
@@ -249,6 +276,14 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                 if rdb.get("track_id"):
                     back_off = 0
 
+                # If RMS is below threshold, switch to waiting mode
+                if result.rms < file_config.silence_threshold:
+                    logger.info(f"No sound detected (RMS: {result.rms}), entering waiting mode...")
+                    is_waiting = True
+                    subsequent_detects = 0
+                    back_off = 0
+                    continue
+                
                 duration = file_config.duration
                 sleep("next_scan", back_off * file_config.duration)
                 back_off = min(1.0, back_off + 0.25)
@@ -298,7 +333,7 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
 
         if entry.started_at and entry.track.duration_seconds:
             started_at = entry.started_at.timestamp() - file_config.temp_save_offset
-            ended_at = started_at + entry.track.duration_seconds + file_config.temp_save_offset
+            ended_at = started_at + entry.track.duration_seconds + 2 * file_config.temp_save_offset
         else:
             started_at = time.time() - file_config.buffer_length_seconds
             ended_at = time.time()
