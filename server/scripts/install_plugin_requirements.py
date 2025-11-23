@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Add the server directory to the path so we can import modules
-server_dir = Path(__file__).parent.parent
+server_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(server_dir))
 
 from server.music_id.base import TrackIdPlugin
