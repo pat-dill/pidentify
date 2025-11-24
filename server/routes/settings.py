@@ -1,13 +1,14 @@
 import asyncio
 from concurrent.futures.process import ProcessPoolExecutor
 
+import argon2
 from fastapi import APIRouter
 from pydantic_core.core_schema import NoneSchema
 from sqlalchemy_utils.types.password import passlib
 from starlette.requests import Request
 
 
-from server.auth import is_admin
+from server.auth import check_password, is_admin
 from server.config import FileConfig, env_config
 from server.db import get_history_entry
 from server.exceptions import ErrorResponse
@@ -70,6 +71,13 @@ def update_settings(request: Request, data: UpdateSettingsRequest) -> FileConfig
     for key, value in config_updates.items():
         if hasattr(config, key):
             setattr(config, key, value)
+    
+    if data.new_password:
+        if config.admin_password_hash and not check_password(data.old_password, config.admin_password_hash):
+            raise ErrorResponse(403, "invalid_credentials")
+        
+        ph = argon2.PasswordHasher()
+        config.admin_password_hash = ph.hash(data.new_password)
 
     config.save()
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { SettingOutlined } from "@ant-design/icons";
 import { useClientConfig } from "@/api/getClientConfig";
 
-export default function SettingsButton() {
+export function SettingsButton() {
   const {
     token: { colorBgBase },
   } = theme.useToken();
@@ -17,16 +17,7 @@ export default function SettingsButton() {
   }
 
   return (
-    <Typography.Text
-      style={{
-        position: "fixed",
-        top: 10,
-        right: 10,
-        fontFamily: "Geist Mono",
-        color: colorBgBase,
-        fontSize: 16,
-      }}
-    >
+    <Typography.Text>
       <Link href="/settings" style={{ color: colorBgBase }}>
         <SettingOutlined />
       </Link>

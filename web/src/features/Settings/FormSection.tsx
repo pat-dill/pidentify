@@ -16,10 +16,11 @@ type FormSectionProps = {
   children?: ReactNode;
   initialValues?: Record<string, any>;
   onUpdate?: () => void;
+  resetOnSave?: boolean;
 };
 
 export function FormSection(props: FormSectionProps) {
-  const { title, icon, children, onUpdate } = props;
+  const { title, icon, children, onUpdate, resetOnSave } = props;
 
   const [form] = Form.useForm();
   const [formTouched, setFormTouched] = useState(false);
@@ -28,7 +29,7 @@ export function FormSection(props: FormSectionProps) {
   const updateSettingsMut = useUpdateSettings({
     onSuccess: () => {
       setFormTouched(false);
-      setSettingsChanged(true);
+      if (resetOnSave) setSettingsChanged(true);
       onUpdate?.();
     },
   });

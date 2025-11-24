@@ -35,7 +35,7 @@ export default function AlbumOverview({
               width: "100%",
             }}>
               <Flex align="center" style={{
-                fontWeight: isCurrentTrack ? 600 : 400,
+                fontWeight: isCurrentTrack ? 700 : 400,
               }}>
                 <Typography.Text style={{
                   minWidth: 16,

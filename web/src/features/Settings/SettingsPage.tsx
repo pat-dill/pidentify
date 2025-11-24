@@ -3,9 +3,10 @@
 import { FloatingCurrentTrack } from "@/features/NowPlaying/FloatingCurrentTrack";
 import { Flex, Typography } from "antd";
 import { SoundSettingsForm } from "./SoundSettings";
-import { AppstoreOutlined, AudioOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, AudioOutlined, LockOutlined } from "@ant-design/icons";
 import { FormSection } from "./FormSection";
 import { AppConnectionsForm } from "./AppConnections";
+import { AuthSettingsForm } from "./AuthSettings";
 
 export function SettingsPage() {
   return (
@@ -30,6 +31,7 @@ export function SettingsPage() {
               title="Audio"
               description="Configure the input audio device"
               icon={<AudioOutlined />}
+              resetOnSave
             >
               <SoundSettingsForm />
             </FormSection>
@@ -38,8 +40,17 @@ export function SettingsPage() {
               title="Connections"
               description="Third party connections"
               icon={<AppstoreOutlined />}
+              resetOnSave
             >
               <AppConnectionsForm />
+            </FormSection>
+
+            <FormSection
+              title="Authentication"
+              description="Authentication settings"
+              icon={<LockOutlined />}
+            >
+              <AuthSettingsForm />
             </FormSection>
           </Flex>
         </div>
