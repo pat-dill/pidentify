@@ -19,7 +19,7 @@ export function SettingsButton() {
   return (
     <Typography.Text>
       <Link href="/settings" style={{ color: colorBgBase }}>
-        <SettingOutlined />
+        <SettingOutlined style={{ fontSize: 16 }} />
       </Link>
     </Typography.Text>
   );

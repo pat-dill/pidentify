@@ -16,7 +16,6 @@ export function _NavBar() {
         right: 10,
         fontFamily: "Geist Mono",
         color: colorBgBase,
-        fontSize: 16,
     }}>
         <SettingsButton />
         <AuthButton />

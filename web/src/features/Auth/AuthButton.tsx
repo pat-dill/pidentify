@@ -15,10 +15,10 @@ export function AuthButton() {
 
     return <>
         {!session && <button onClick={() => setShowing(true)}>
-            <UserOutlined />
+            <UserOutlined style={{ fontSize: 16 }} />
         </button>}
         {session && <button onClick={() => signOutMut.mutate()}>
-            <LogoutOutlined />
+            <LogoutOutlined style={{ fontSize: 16 }} />
         </button>}
 
         <SignInModal showing={showing} setShowing={setShowing} />
