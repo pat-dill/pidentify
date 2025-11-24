@@ -52,4 +52,11 @@ def update_track(entry_id: str, update_data: UpdateHistoryRequest, request: Requ
 
     entry = db.get_history_entry(entry_id=entry_id)
     db.update_db_track(entry.track_guid, **update_data.model_dump(exclude_unset=True))
-    return ResponseModel(success=True)
+    return ResponseModel()
+
+
+@api.get("/albums")
+def get_albums_list() -> ResponseModel:
+    albums = db.get_unique_albums()
+    
+    return ResponseModel(data=albums)
