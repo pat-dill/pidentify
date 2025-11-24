@@ -43,6 +43,11 @@ async def recognize_raw(raw, sample_rate, downsample_to=44100):
         if frame_skip >= 2:
             raw = raw[::frame_skip]
 
+        # Convert multi-channel to mono by averaging channels
+        if raw.ndim >= 2:
+            # Shape is [samples, channels], average across channels (axis=1)
+            raw = np.mean(raw, axis=1)
+
         raw_norm = 2 * (raw - raw.min()) / (raw.max() - raw.min()) - 1  # normalize
 
         plugin = load_plugin(file_config.music_id_plugin)

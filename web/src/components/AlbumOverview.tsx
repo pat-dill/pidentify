@@ -26,7 +26,7 @@ export default function AlbumOverview({
     >
       <Flex vertical style={{ maxHeight: 200, overflowY: "auto" }}>
         {album.tracks?.track?.map((track, idx) => {
-          const isCurrentTrack = status?.track?.track_no === track["@attr"]?.rank;
+          const isCurrentTrack = isCurrentAlbum && status?.track?.track_no === track["@attr"]?.rank;
 
           return <Flex key={track.name}>
             <div style={{
