@@ -1,6 +1,3 @@
-from server.db import UniqueAlbum
-
-
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -9,8 +6,8 @@ from starlette.requests import Request
 from server import db
 from server.exceptions import ErrorResponse
 from server.models import PaginateQuery, PaginatedResponse, ResponseModel, BaseModel
-from server.utils import is_local_client
-
+from server.auth import is_admin
+from server.db import UniqueAlbum
 
 # Request models
 
@@ -30,7 +27,7 @@ api = APIRouter(prefix="/api/history")
 
 
 def check_auth(request):
-    if not is_local_client(request):
+    if not is_admin(request):
         raise ErrorResponse(403, "not_authorized")
 
 

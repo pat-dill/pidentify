@@ -110,8 +110,8 @@ export function EditEntryModal({
               formatter={(duration) => {
                 return duration
                   ? `${Math.floor(duration / 60)}:${Math.floor(duration % 60)
-                      .toString()
-                      .padStart(2, "0")}`
+                    .toString()
+                    .padStart(2, "0")}`
                   : "";
               }}
               parser={(val) => {
