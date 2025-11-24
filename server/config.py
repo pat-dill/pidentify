@@ -61,7 +61,7 @@ class FileConfig(BaseModel):
     initial_setup_complete: bool = False
     
     def save(self):
-        yaml_str = yaml.dump(self.model_dump(exclude_defaults=True))
+        yaml_str = yaml.dump(self.model_dump(exclude_defaults=True, include=["jwt_secret_key"]))
         config_fp.write_text(yaml_str)
 
     @classmethod

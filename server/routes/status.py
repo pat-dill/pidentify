@@ -6,8 +6,10 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
 from redis import Redis, RedisError
+from starlette.requests import Request
 from starlette.websockets import WebSocket
 
+from server.config import env_config
 from server.logger import logger
 from server.models import StatusResponse
 from server.redis_client import get_redis
@@ -78,6 +80,14 @@ def get_status(rdb: Redis = None) -> StatusResponse | None:
 @api.get("")
 async def api_get_status() -> StatusResponse:
     return get_status()
+
+
+@api.get("/websocket-host")
+async def get_websocket_host(request: Request, scheme: str) -> str:
+    if scheme == "https":
+        return env_config.https_websocket_url
+    else:
+        return env_config.http_websocket_url
 
 
 @api.websocket("/ws")
