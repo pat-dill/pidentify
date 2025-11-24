@@ -1,19 +1,19 @@
 import asyncio
 from concurrent.futures.process import ProcessPoolExecutor
-from pathlib import Path
 
 from fastapi import APIRouter
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import FileResponse
 
+from server.auth import is_admin
 from server.config import env_config
 from server.db import get_history_entry, update_history_entries
 from server.exceptions import ErrorResponse
 from server.models import HistoryEntry, ResponseModel, BaseModel
 from server.redis_client import get_redis
 from server.rip_tool.audio_data import get_audio_data_chart, trim_and_save_audio, get_image_extension_from_url
-from server.utils import is_local_client, safe_filename
+from server.utils import safe_filename
 
 
 # Request/Response models
@@ -51,7 +51,7 @@ pool = ProcessPoolExecutor()
 
 
 def check_auth(request):
-    if not is_local_client(request):
+    if not is_admin(request):
         raise ErrorResponse(403, "not_authorized")
 
 

@@ -13,7 +13,7 @@ from starlette.responses import FileResponse, JSONResponse
 
 from server.auth import get_session, is_admin
 from server.models import ResponseModel, LyricLine, Lyrics
-from server.utils import safe_filename, is_local_client
+from server.utils import safe_filename
 from server.config import ClientConfig, FileConfig, env_config
 from server.exceptions import ErrorResponse
 
@@ -43,17 +43,17 @@ app.include_router(settings.api)
 
 @app.post("/api/scan-now")
 def scan_now(request: Request) -> ResponseModel:
-    if is_local_client(request):
+    if is_admin(request):
         rdb = get_redis()
         rdb.delete("sleep.next_scan")
         return ResponseModel(success=True, status="")
     else:
-        raise ErrorResponse(401, "not_authorized")
+        raise ErrorResponse(403, "not_authorized")
 
 
 @app.get("/api/dump", response_model=None)
 async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileResponse:
-    if is_local_client(request):
+    if is_admin(request):
         rdb = get_redis()
         rdb.publish("dump", f"{float(mins * 60)}")
 
@@ -75,7 +75,7 @@ async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileR
                 return resp
 
     else:
-        raise ErrorResponse(401, "not_authorized")
+        raise ErrorResponse(403, "not_authorized")
 
 
 @app.get("/api/lyrics")
@@ -128,25 +128,25 @@ def get_current_lyrics():
 
 @app.get("/api/config")
 async def get_client_config(request: Request) -> ClientConfig:
-    is_local = is_local_client(request)
+    is_admin_req = is_admin(request)
 
     file_config = FileConfig.load()
 
     return ClientConfig(
-        can_skip=is_local,
-        can_save=is_local,
-        can_edit_history=is_local,
+        can_skip=is_admin_req,
+        can_save=is_admin_req,
+        can_edit_history=is_admin_req,
         buffer_length_seconds=file_config.buffer_length_seconds,
         temp_save_offset=file_config.temp_save_offset,
         initial_setup_complete=file_config.initial_setup_complete,
-        is_admin=is_admin(request),
+        is_admin=is_admin_req,
     )
 
 
 @app.post("/api/recorder/restart")
 def restart_recorder(request: Request) -> ResponseModel:
-    if not is_local_client(request):
-        return ResponseModel(success=False, status="must_be_local", message="Recorder restart requires local access")
+    if not is_admin(request):
+        return ErrorResponse(403, "not_authorized")
 
     try:
         subprocess.run(

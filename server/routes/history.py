@@ -6,8 +6,8 @@ from starlette.requests import Request
 from server import db
 from server.exceptions import ErrorResponse
 from server.models import PaginateQuery, PaginatedResponse, ResponseModel, BaseModel
-from server.utils import is_local_client
-
+from server.auth import is_admin
+from server.db import UniqueAlbum
 
 # Request models
 
@@ -17,6 +17,8 @@ class UpdateHistoryRequest(BaseModel):
     track_name: str | None = None
     artist_name: str | None = None
     album_name: str | None = None
+    track_image: str | None = None
+    artist_image: str | None = None
 
 
 # API Routes
@@ -25,7 +27,7 @@ api = APIRouter(prefix="/api/history")
 
 
 def check_auth(request):
-    if not is_local_client(request):
+    if not is_admin(request):
         raise ErrorResponse(403, "not_authorized")
 
 
@@ -52,4 +54,11 @@ def update_track(entry_id: str, update_data: UpdateHistoryRequest, request: Requ
 
     entry = db.get_history_entry(entry_id=entry_id)
     db.update_db_track(entry.track_guid, **update_data.model_dump(exclude_unset=True))
-    return ResponseModel(success=True)
+    return ResponseModel()
+
+
+@api.get("/albums")
+def get_albums_list() -> ResponseModel[list[UniqueAlbum]]:
+    albums = db.get_unique_albums()
+
+    return ResponseModel[list[UniqueAlbum]](data=albums)

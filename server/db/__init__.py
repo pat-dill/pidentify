@@ -1,17 +1,24 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, update, func as sqlfunc, insert, and_, or_, delete
+from sqlalchemy import distinct, select, tuple_, update, func as sqlfunc, insert, and_, or_, delete
 
 from server import models
 from server.db.sqlalchemy_context_client import db_client
 from server.db.utils import paginate
-from server.models import PaginatedResponse
+from server.models import BaseModel, PaginatedResponse
 from server.sql_schemas import HistoryEntry, Track, TrackId
 from server.utils import get_keywords, handle_filters_arg, db_model_dict
 
 
 # == Models ==
+
+
+class UniqueAlbum(BaseModel):
+    artist: str
+    album: str
+    artist_image_url: str | None = None
+    album_image_url: str | None = None
 
 
 # == Methods ==
@@ -189,3 +196,22 @@ def delete_history_entries(*filter_args, **filter_kwargs):
             )
         )
         session.commit()
+
+
+def get_unique_albums():
+    with db_client.session() as session:
+        results = session.execute(
+            select(Track.artist_name, Track.album_name, Track.artist_image, Track.track_image)
+            .group_by(Track.artist_name, Track.album_name)
+        ).all()
+
+        return [
+            UniqueAlbum(
+                artist=result.artist_name,
+                album=result.album_name,
+                artist_image_url=result.artist_image, 
+                album_image_url=result.track_image,
+            )
+             for result in results
+             if result.album_name
+            ]

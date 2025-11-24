@@ -30,8 +30,6 @@ export default function HistoryEntryDropdown({
   const { data: clientConfig } = useClientConfig();
   const queryClient = useQueryClient();
 
-  const refreshHistory = () => queryClient.invalidateQueries(getHistoryQuery());
-
   const [canSave, setCanSave] = useState(false);
   useAnimationFrame(() => {
     if (
@@ -114,7 +112,7 @@ export default function HistoryEntryDropdown({
           ]
         : []),
     ],
-    [canSave, clientConfig],
+    [canSave, clientConfig, entry],
   );
 
   const {
@@ -134,7 +132,7 @@ export default function HistoryEntryDropdown({
             zIndex: 5,
           }}
         >
-          <Dropdown menu={{ items }}>
+          <Dropdown menu={{ items }} destroyOnHidden>
             <div
               style={{
                 width: "100%",
