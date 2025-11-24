@@ -202,7 +202,7 @@ def get_unique_albums():
     with db_client.session() as session:
         results = session.execute(
             select(Track.artist_name, Track.album_name, Track.artist_image, Track.track_image)
-            .distinct()
+            .group_by(Track.artist_name, Track.album_name)
         ).all()
 
         return [

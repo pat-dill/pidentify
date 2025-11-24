@@ -1,8 +1,9 @@
 import { HistoryEntryT } from "@/schemas";
-import { Flex, Form, Input, InputNumber, Modal, Typography } from "antd";
+import { AutoComplete, Flex, Form, Input, InputNumber, Modal, Typography } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateHistoryEntries } from "@/api/history/updateHistoryEntries";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useHistoryAlbums } from "@/api/history/getHistoryAlbums";
 
 type EditEntryModalProps = {
   entry: HistoryEntryT;
@@ -15,6 +16,7 @@ type FormFields = {
   album: string;
   artist: string;
   duration: number;
+  track_image: string;
 };
 
 export function EditEntryModal({
@@ -30,7 +32,10 @@ export function EditEntryModal({
     album_name: entry.track.album_name || "",
     artist_name: entry.track.artist_name || "",
     duration_seconds: entry.track.duration_seconds || null,
+    track_image: entry.track.track_image || "",
   };
+
+  const artistName = Form.useWatch("artist_name", form);
 
   const editEntryMut = useMutation({
     mutationFn: async (values: FormFields) => {
@@ -40,6 +45,21 @@ export function EditEntryModal({
       });
     },
   });
+
+  const { data: albums } = useHistoryAlbums({
+    enabled: showing,
+  });
+
+  const sameArtistAlbums = useMemo(() => {
+    return albums?.data.filter((album) => album.artist === artistName) ?? [];
+  }, [albums, artistName]);
+
+  const albumOptions = useMemo(() => {
+    return sameArtistAlbums.map((album) => ({
+      label: album.album,
+      value: album.album,
+    }));
+  }, [sameArtistAlbums]);
 
   useEffect(() => {
     if (showing) form.resetFields();
@@ -53,6 +73,7 @@ export function EditEntryModal({
         form.submit();
       }}
       okButtonProps={{ variant: "solid", color: "default" }}
+      destroyOnHidden
     >
       <Typography.Title level={4}>
         Edit "{entry.track.track_name}"
@@ -87,8 +108,8 @@ export function EditEntryModal({
               formatter={(duration) => {
                 return duration
                   ? `${Math.floor(duration / 60)}:${Math.floor(duration % 60)
-                      .toString()
-                      .padStart(2, "0")}`
+                    .toString()
+                    .padStart(2, "0")}`
                   : "";
               }}
               parser={(val) => {
@@ -108,7 +129,15 @@ export function EditEntryModal({
             rules={[{ required: true }]}
             style={{ width: "50%", margin: 0 }}
           >
-            <Input />
+            <AutoComplete
+              options={albumOptions}
+              onSelect={(value) => {
+                const trackImage = sameArtistAlbums.find((album) => album.album === value)?.album_image_url;
+                if (trackImage) {
+                  form.setFieldValue("track_image", trackImage);
+                }
+              }}
+            />
           </Form.Item>
 
           <Form.Item
@@ -120,6 +149,14 @@ export function EditEntryModal({
             <Input />
           </Form.Item>
         </Flex>
+
+        <Form.Item
+          label="Track Image"
+          name="track_image"
+          hidden
+        >
+          <Input />
+        </Form.Item>
       </Form>
     </Modal>
   );

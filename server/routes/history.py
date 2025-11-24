@@ -20,6 +20,8 @@ class UpdateHistoryRequest(BaseModel):
     track_name: str | None = None
     artist_name: str | None = None
     album_name: str | None = None
+    track_image: str | None = None
+    artist_image: str | None = None
 
 
 # API Routes
