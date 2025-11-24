@@ -1,5 +1,13 @@
 import { HistoryEntryT } from "@/schemas";
-import { AutoComplete, Flex, Form, Input, InputNumber, Modal, Typography } from "antd";
+import {
+  AutoComplete,
+  Flex,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Typography,
+} from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateHistoryEntries } from "@/api/history/updateHistoryEntries";
 import { useEffect, useMemo } from "react";
@@ -43,6 +51,7 @@ export function EditEntryModal({
       queryClient.invalidateQueries({
         queryKey: ["history"],
       });
+      setShowing(false);
     },
   });
 
@@ -61,10 +70,6 @@ export function EditEntryModal({
     }));
   }, [sameArtistAlbums]);
 
-  useEffect(() => {
-    if (showing) form.resetFields();
-  }, [entry, showing]);
-
   return (
     <Modal
       open={showing}
@@ -73,7 +78,7 @@ export function EditEntryModal({
         form.submit();
       }}
       okButtonProps={{ variant: "solid", color: "default" }}
-      destroyOnHidden
+      destroyOnHidden={true}
     >
       <Typography.Title level={4}>
         Edit "{entry.track.track_name}"
@@ -83,10 +88,7 @@ export function EditEntryModal({
         form={form}
         initialValues={initialValues}
         layout="vertical"
-        onFinish={async (values) => {
-          await editEntryMut.mutate(values);
-          setShowing(false);
-        }}
+        onFinish={editEntryMut.mutate}
       >
         <Flex gap={5} style={{ width: "100%", marginBottom: 10 }}>
           <Form.Item
@@ -108,8 +110,8 @@ export function EditEntryModal({
               formatter={(duration) => {
                 return duration
                   ? `${Math.floor(duration / 60)}:${Math.floor(duration % 60)
-                    .toString()
-                    .padStart(2, "0")}`
+                      .toString()
+                      .padStart(2, "0")}`
                   : "";
               }}
               parser={(val) => {
@@ -132,7 +134,9 @@ export function EditEntryModal({
             <AutoComplete
               options={albumOptions}
               onSelect={(value) => {
-                const trackImage = sameArtistAlbums.find((album) => album.album === value)?.album_image_url;
+                const trackImage = sameArtistAlbums.find(
+                  (album) => album.album === value,
+                )?.album_image_url;
                 if (trackImage) {
                   form.setFieldValue("track_image", trackImage);
                 }
@@ -150,11 +154,7 @@ export function EditEntryModal({
           </Form.Item>
         </Flex>
 
-        <Form.Item
-          label="Track Image"
-          name="track_image"
-          hidden
-        >
+        <Form.Item label="Track Image" name="track_image" hidden>
           <Input />
         </Form.Item>
       </Form>
