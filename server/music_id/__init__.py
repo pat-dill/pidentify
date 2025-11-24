@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from server.config import env_config
+from server.config import env_config, file_config
 from server.models import MusicIdResult
 from server.music_id.base import TrackIdPlugin
 
@@ -33,7 +33,7 @@ async def recognize_raw(raw, sample_rate, downsample_to=44100):
     raw = np.array(raw, np.float32)
 
     rms = float(np.sqrt(np.mean(raw ** 2)))
-    if rms < env_config.silence_threshold:
+    if rms < file_config.silence_threshold:
         return MusicIdResult(
             success=False,
             message=f"No sound detected. RMS: {rms}",
@@ -43,16 +43,20 @@ async def recognize_raw(raw, sample_rate, downsample_to=44100):
         if frame_skip >= 2:
             raw = raw[::frame_skip]
 
+        # Convert multi-channel to mono by averaging channels
+        if raw.ndim >= 2:
+            # Shape is [samples, channels], average across channels (axis=1)
+            raw = np.mean(raw, axis=1)
+
         raw_norm = 2 * (raw - raw.min()) / (raw.max() - raw.min()) - 1  # normalize
 
-        plugin = load_plugin(env_config.music_id_plugin)
+        plugin = load_plugin(file_config.music_id_plugin)
 
         audio_buffer = BytesIO()
         sf.write(audio_buffer, raw_norm, int(sample_rate / frame_skip), format=plugin.format, subtype=plugin.subtype)
         audio_buffer.seek(0)
 
         if plugin.is_async:
-            return await plugin.identify_track(audio_buffer)
+            return await plugin.identify_track_async(audio_buffer)
         else:
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, plugin.identify_track, audio_buffer)
+            return await asyncio.to_thread(plugin.identify_track, audio_buffer)

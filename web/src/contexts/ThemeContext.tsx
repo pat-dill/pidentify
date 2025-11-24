@@ -44,12 +44,24 @@ export function ThemeProvider({
 
   const backgroundColor = imgColor ?? "#111111";
 
-  const textColor = isDarkColor(
+  const lightText = isDarkColor(
     backgroundColor,
     root ? TEXT_COLOR_WEIGHT : 0.15,
-  )
-    ? "#ffffff"
-    : "#000000";
+  );
+
+  const textColor = lightText ? "#ffffff" : "#000000";
+
+  const colorTextDescription = lightText
+    ? "rgba(255, 255, 255, 0.45)"
+    : "rgba(0, 0, 0, 0.45)";
+
+  const colorTextDisabled = lightText
+    ? "rgba(255, 255, 255, 0.45)"
+    : "rgba(0, 0, 0, 0.45)";
+
+  const colorTextPlaceholder = lightText
+    ? "rgba(255, 255, 255, 0.5)"
+    : "rgba(0, 0, 0, 0.5)";
 
   useLayoutEffect(() => {
     if (root) {
@@ -72,6 +84,9 @@ export function ThemeProvider({
             colorPrimary: "#1677ff",
             colorBgBase: backgroundColor,
             colorText: textColor,
+            colorTextDescription,
+            colorTextDisabled,
+            colorTextPlaceholder,
             colorLink: textColor,
             borderRadius: 0,
             paddingLG: 16,
@@ -80,6 +95,11 @@ export function ThemeProvider({
             paddingXS: 4,
             paddingXXS: 2,
             lineHeight: 1.4,
+          },
+          components: {
+            Form: {
+              itemMarginBottom: 12,
+            },
           },
         }}
       >

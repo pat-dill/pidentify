@@ -1,0 +1,5 @@
+#!/command/with-contenv bash
+set -euo pipefail
+
+exec /server/scripts/run_api.sh
+

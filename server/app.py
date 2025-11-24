@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -6,20 +7,22 @@ from pathlib import Path
 import httpx
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
+from sqlalchemy.sql import true
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 
+from server.auth import get_session, is_admin
 from server.models import ResponseModel, LyricLine, Lyrics
 from server.utils import safe_filename, is_local_client
-from .config import ClientConfig, env_config
-from .exceptions import ErrorResponse
+from server.config import ClientConfig, FileConfig, env_config
+from server.exceptions import ErrorResponse
 
 sys.path.append(str(Path(__file__).parents))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server.redis_client import get_redis
-from server.routes import status, history, rip_tool
+from server.routes import status, history, rip_tool, auth, settings
 from server.routes.status import get_status
 
 app = FastAPI()
@@ -34,6 +37,9 @@ app.add_middleware(
 app.include_router(status.api)
 app.include_router(history.api)
 app.include_router(rip_tool.api)
+app.include_router(auth.api)
+app.include_router(settings.api)
+
 
 @app.post("/api/scan-now")
 def scan_now(request: Request) -> ResponseModel:
@@ -42,7 +48,7 @@ def scan_now(request: Request) -> ResponseModel:
         rdb.delete("sleep.next_scan")
         return ResponseModel(success=True, status="")
     else:
-        return ResponseModel(success=False, status="must_be_local")
+        raise ErrorResponse(401, "not_authorized")
 
 
 @app.get("/api/dump", response_model=None)
@@ -57,7 +63,7 @@ async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileR
         resp_raw = ps.get_message(timeout=30)
 
         if resp_raw is None:
-            return ResponseModel(success=False, status="timed_out")
+            raise ErrorResponse(500, "timed_out")
         else:
             resp = ResponseModel.model_validate_json(resp_raw["data"])
             if resp.data:
@@ -69,7 +75,7 @@ async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileR
                 return resp
 
     else:
-        return ResponseModel(success=False, message="Not authorized")
+        raise ErrorResponse(401, "not_authorized")
 
 
 @app.get("/api/lyrics")
@@ -123,13 +129,55 @@ def get_current_lyrics():
 @app.get("/api/config")
 async def get_client_config(request: Request) -> ClientConfig:
     is_local = is_local_client(request)
+
+    file_config = FileConfig.load()
+
     return ClientConfig(
         can_skip=is_local,
         can_save=is_local,
         can_edit_history=is_local,
-        buffer_length_seconds=env_config.buffer_length_seconds,
-        temp_save_offset=env_config.temp_save_offset,
+        buffer_length_seconds=file_config.buffer_length_seconds,
+        temp_save_offset=file_config.temp_save_offset,
+        initial_setup_complete=file_config.initial_setup_complete,
+        is_admin=is_admin(request),
     )
+
+
+@app.post("/api/recorder/restart")
+def restart_recorder(request: Request) -> ResponseModel:
+    if not is_local_client(request):
+        return ResponseModel(success=False, status="must_be_local", message="Recorder restart requires local access")
+
+    try:
+        subprocess.run(
+            ["s6-svc", "-r", env_config.recorder_service_path],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        raise ErrorResponse(
+            400, 
+            "not_available",
+            "s6-svc is not available in this environment",
+        )
+    except subprocess.CalledProcessError as exc:
+        raise ErrorResponse(
+            400,
+            "restart_failed",
+            exc.stderr.strip() or "Failed to restart recorder",
+        )
+
+    return ResponseModel(success=True, message="Recorder restart requested")
+
+
+@app.get("/api/websocket-host")
+async def get_websocket_host(request: Request) -> str:
+    if request.url.scheme == "https":
+        return env_config.https_websocket_url
+    else:
+        return env_config.http_websocket_url
+
 
 get_openapi(
     title=__name__,

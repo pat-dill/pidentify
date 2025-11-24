@@ -3,18 +3,17 @@ from io import BytesIO
 from server.models import BaseModel, MusicIdResult
 
 
-class Config(BaseModel):
-    pass
-
-
 class TrackIdPlugin:
     is_async: bool
     format: str = "OGG"
     subtype: str | None = "VORBIS"
     requirements: list[str] = []
 
-    def __init__(self, config: Config = None):
-        self.config = config or Config()
+    class PluginOptions(BaseModel):
+        pass
+
+    def __init__(self, options: PluginOptions = None):
+        self.options = options or TrackIdPlugin.PluginOptions()
 
     def identify_track(self, audio: BytesIO) -> MusicIdResult:
         raise NotImplementedError

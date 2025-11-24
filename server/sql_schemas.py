@@ -77,3 +77,4 @@ class HistoryEntry(DBModel):
     started_at: Mapped[datetime | None] = mapped_column()
 
     saved_temp_buffer: Mapped[bool] = mapped_column(default=False, server_default="false")
+    saved_to_library: Mapped[bool] = mapped_column(default=False, server_default="false")

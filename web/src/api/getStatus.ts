@@ -1,9 +1,9 @@
 import { get } from "@/api/request";
 import { z } from "zod";
 import {
+  albumSchema,
   lastFMArtistSchema,
   lastFMTrackSchema,
-  lyricsSchema,
   trackSchema,
 } from "@/schemas";
 import {
@@ -22,6 +22,7 @@ export const statusSchema = z.object({
   track: trackSchema.nullish(),
   last_fm_track: lastFMTrackSchema.nullish(),
   last_fm_artist: lastFMArtistSchema.nullish(),
+  last_fm_album: albumSchema.nullish(),
   duration_seconds: z.number().nullish(),
   next_scan: z.string().nullish(),
   scan_ends: z.string().nullish(),

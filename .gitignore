@@ -1,8 +1,6 @@
 # Hidden directories
 **/.*/
 
-**/music_id/plugins/*
-
 _frontend/dist
 
 # Byte-compiled / optimized / DLL files

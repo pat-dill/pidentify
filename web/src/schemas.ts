@@ -39,6 +39,7 @@ export const trackSchema = z.object({
   track_guid: z.string().nullish(),
   duration_seconds: z.number().nullish(),
   track_name: z.string(),
+  track_no: z.number().nullish(),
   artist_name: z.string().nullish(),
   album_name: z.string().nullish(),
   track_image: z.string().nullish(),
@@ -48,6 +49,35 @@ export const trackSchema = z.object({
 });
 
 export type TrackT = z.infer<typeof trackSchema>;
+
+export const albumSchema = z.object({
+  artist: z.string(),
+  name: z.string(),
+  url: z.string(),
+  wiki: z
+    .object({
+      content: z.string(),
+    })
+    .nullish(),
+  tracks: z
+    .object({
+      track: z.array(
+        z.object({
+          name: z.string(),
+          url: z.string(),
+          duration: z.number().nullish(),
+          "@attr": z
+            .object({
+              rank: z.number(),
+            })
+            .nullish(),
+        }),
+      ),
+    })
+    .nullish(),
+});
+
+export type AlbumT = z.infer<typeof albumSchema>;
 
 export const lyricsSchema = z.object({
   synced: z.boolean(),
@@ -67,5 +97,6 @@ export const historyEntrySchema = z.object({
   started_at: z.string().nullish(),
   track: trackSchema,
   saved_temp_buffer: z.boolean(),
+  saved_to_library: z.boolean(),
 });
 export type HistoryEntryT = z.infer<typeof historyEntrySchema>;
