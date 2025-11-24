@@ -74,7 +74,7 @@ export function AudioClipInput(props: AudioClipInputProps) {
   } = props;
 
   const processedChart = useMemo(() => {
-    const highVol = getPercentile(chart, 0.99);
+    const highVol = getPercentile(chart, 1);
     return chart.map((vol) => Math.min(1, vol / highVol));
   }, [chart]);
 

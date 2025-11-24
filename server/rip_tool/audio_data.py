@@ -19,7 +19,7 @@ def get_audio_data_chart(file_path: Path, parts: int):
         raw_audio = sf.read(sf.frames, always_2d=True)
 
     return duration, [
-        np.percentile(np.abs(chunk[:, 0]), 50) ** 2
+        np.percentile(np.abs(np.mean(chunk, axis=1)), 50)
         for chunk in chunk_list(raw_audio, parts)
     ]
 
