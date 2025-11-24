@@ -139,7 +139,7 @@ async def get_client_config(request: Request) -> ClientConfig:
         buffer_length_seconds=file_config.buffer_length_seconds,
         temp_save_offset=file_config.temp_save_offset,
         initial_setup_complete=file_config.initial_setup_complete,
-        is_admin=is_admin(request),
+        is_admin=is_admin_req,
     )
 
 
