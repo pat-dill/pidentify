@@ -1,3 +1,6 @@
+from server.db import UniqueAlbum
+
+
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -56,7 +59,7 @@ def update_track(entry_id: str, update_data: UpdateHistoryRequest, request: Requ
 
 
 @api.get("/albums")
-def get_albums_list() -> ResponseModel:
+def get_albums_list() -> ResponseModel[list[UniqueAlbum]]:
     albums = db.get_unique_albums()
-    
-    return ResponseModel(data=albums)
+
+    return ResponseModel[list[UniqueAlbum]](data=albums)
