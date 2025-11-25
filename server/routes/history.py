@@ -9,8 +9,8 @@ from server.models import PaginateQuery, PaginatedResponse, ResponseModel, BaseM
 from server.auth import is_admin
 from server.db import UniqueAlbum
 
-# Request models
 
+# Request models
 
 class UpdateHistoryRequest(BaseModel):
     duration_seconds: float | None = None
