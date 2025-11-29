@@ -53,7 +53,7 @@ export default function History({ style }: { style?: CSSProperties }) {
 
             <button
               onClick={() => setManualEntryOpen(true)}
-              style={{ fontSize: 16 }}
+              style={{ fontSize: 16, marginRight: 3 }}
             >
               <PlusOutlined />
             </button>

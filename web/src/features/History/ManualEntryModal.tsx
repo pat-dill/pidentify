@@ -35,7 +35,7 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
   );
 
   useEffect(() => {
-    form.resetFields();
+    if (open) form.resetFields();
   }, [open]);
 
   const artistName = Form.useWatch("artistName", form);
