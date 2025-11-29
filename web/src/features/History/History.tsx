@@ -13,7 +13,7 @@ import { Flex, Typography } from "antd";
 import useAutoLoadMore from "@/utils/useAutoLoadMore";
 import useSafeClientSplit from "@/utils/useSafeClientSplit";
 import { PlusOutlined } from "@ant-design/icons";
-import { ManualEntryModal } from "./ManualEntryModal";
+import { ManualEntryModal } from "./ManualEntry/ManualEntryModal";
 
 export default function History({ style }: { style?: CSSProperties }) {
   const queryClient = useQueryClient();
