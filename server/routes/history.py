@@ -7,7 +7,7 @@ from server import db
 from server.exceptions import ErrorResponse
 from server.models import PaginateQuery, PaginatedResponse, ResponseModel, BaseModel
 from server.auth import is_admin
-from server.db import UniqueAlbum
+from server.db import UniqueAlbum, UniqueArtist
 
 # Request models
 
@@ -62,3 +62,10 @@ def get_albums_list() -> ResponseModel[list[UniqueAlbum]]:
     albums = db.get_unique_albums()
 
     return ResponseModel[list[UniqueAlbum]](data=albums)
+
+
+@api.get("/artists")
+def get_artists_list() -> ResponseModel[list[UniqueArtist]]:
+    artists = db.get_unique_artists()
+
+    return ResponseModel[list[UniqueArtist]](data=artists)

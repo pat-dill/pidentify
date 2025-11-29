@@ -1,3 +1,4 @@
+from types import NoneType
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -75,6 +76,7 @@ class HistoryEntry(DBModel):
 
     detected_at: Mapped[datetime] = mapped_column(default=utcnow)
     started_at: Mapped[datetime | None] = mapped_column()
+    is_manual: Mapped[bool] = mapped_column(default=False, server_default="false")
 
     saved_temp_buffer: Mapped[bool] = mapped_column(default=False, server_default="false")
     saved_to_library: Mapped[bool] = mapped_column(default=False, server_default="false")
