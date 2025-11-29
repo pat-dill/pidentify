@@ -1,7 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { CSSProperties, Fragment, useEffect, useState } from "react";
+import {
+  CSSProperties,
+  Fragment,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import HistoryEntry from "@/features/History/HistoryEntry";
 import { HistoryEntryT } from "@/schemas";
 import { formatDurationLong } from "@/utils/formatDurationShort";
@@ -13,7 +19,11 @@ import { Flex, Typography } from "antd";
 import useAutoLoadMore from "@/utils/useAutoLoadMore";
 import useSafeClientSplit from "@/utils/useSafeClientSplit";
 import { PlusOutlined } from "@ant-design/icons";
-import { ManualEntryModal } from "./ManualEntry/ManualEntryModal";
+import {
+  ManualEntryFormFields,
+  ManualEntryModal,
+} from "./ManualEntry/ManualEntryModal";
+import { useSessionStorage } from "react-use";
 
 export default function History({ style }: { style?: CSSProperties }) {
   const queryClient = useQueryClient();
@@ -35,6 +45,41 @@ export default function History({ style }: { style?: CSSProperties }) {
   const entries = history.data?.pages?.map((page) => page.data).flat() || [];
 
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [manualEntryInitialValues, setManualEntryInitialValues] = useState<
+    Partial<ManualEntryFormFields>
+  >({});
+  const [timeMarker, setTimeMarker] = useSessionStorage<number>("timeMarker");
+
+  const startManualEntry = useCallback(() => {
+    const initialValues: Partial<ManualEntryFormFields> = {};
+
+    let lastTrackEnded: number | null = null;
+
+    if (
+      entries.length > 0 &&
+      entries[0].started_at &&
+      entries[0].track?.duration_seconds
+    ) {
+      lastTrackEnded = dayjs(entries[0].started_at)
+        .add(entries[0].track.duration_seconds, "seconds")
+        .valueOf();
+    }
+
+    if (timeMarker && (!lastTrackEnded || lastTrackEnded < timeMarker)) {
+      initialValues.trackBounds = {
+        startedAt: new Date(timeMarker),
+        duration: (new Date().valueOf() - timeMarker) / 1000,
+      };
+    } else if (lastTrackEnded) {
+      initialValues.trackBounds = {
+        startedAt: new Date(lastTrackEnded),
+        duration: (new Date().valueOf() - lastTrackEnded) / 1000,
+      };
+    }
+
+    setManualEntryInitialValues(initialValues);
+    setManualEntryOpen(true);
+  }, [entries, timeMarker]);
 
   return (
     <>
@@ -52,7 +97,7 @@ export default function History({ style }: { style?: CSSProperties }) {
             <span>History</span>
 
             <button
-              onClick={() => setManualEntryOpen(true)}
+              onClick={startManualEntry}
               style={{ fontSize: 16, marginRight: 3 }}
             >
               <PlusOutlined />
@@ -109,6 +154,7 @@ export default function History({ style }: { style?: CSSProperties }) {
       <ManualEntryModal
         open={manualEntryOpen}
         onClose={() => setManualEntryOpen(false)}
+        initialValues={manualEntryInitialValues}
       />
     </>
   );
