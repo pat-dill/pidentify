@@ -21,6 +21,11 @@ class UniqueAlbum(BaseModel):
     album_image_url: str | None = None
 
 
+class UniqueArtist(BaseModel):
+    artist: str
+    artist_image_url: str | None = None
+
+
 # == Methods ==
 
 
@@ -107,6 +112,26 @@ def update_db_track(track_guid: UUID, **kwargs) -> models.DbTrack:
         ).scalar_one()
         session.commit()
         return models.DbTrack.model_validate(db_track, from_attributes=True)
+
+
+def add_or_update_db_track_by_name(track_name: str, artist_name: str, album_name: str, **kwargs) -> models.DbTrack:
+    with db_client.session() as session:
+        db_track = session.execute(
+            select(Track)
+            .where(Track.track_name == track_name, Track.artist_name == artist_name, Track.album_name == album_name)
+        ).scalar_one_or_none()
+
+        if db_track:
+            return update_db_track(db_track.track_guid, **kwargs)
+        
+        else:
+            db_track = session.execute(
+                insert(Track)
+                .values(track_name=track_name, artist_name=artist_name, album_name=album_name, **kwargs)
+                .returning(Track)
+            ).scalar_one()
+            session.commit()
+            return models.DbTrack.model_validate(db_track, from_attributes=True)
 
 
 def get_history_entry(entry_id) -> models.HistoryEntry | None:
@@ -198,7 +223,7 @@ def delete_history_entries(*filter_args, **filter_kwargs):
         session.commit()
 
 
-def get_unique_albums():
+def get_unique_albums() -> list[UniqueAlbum]:
     with db_client.session() as session:
         results = session.execute(
             select(Track.artist_name, Track.album_name, Track.artist_image, Track.track_image)
@@ -215,3 +240,16 @@ def get_unique_albums():
              for result in results
              if result.album_name
             ]
+
+
+def get_unique_artists() -> list[UniqueArtist]:
+    with db_client.session() as session:
+        results = session.execute(
+            select(Track.artist_name, Track.artist_image)
+            .group_by(Track.artist_name)
+        ).all()
+
+        return [
+            UniqueArtist(artist=result.artist_name, artist_image_url=result.artist_image)
+            for result in results
+        ]

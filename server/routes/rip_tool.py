@@ -106,6 +106,8 @@ def get_audio_file(entry_id: str, request: Request) -> ResponseModel | FileRespo
 
 @api.get("/{entry_id}/audio-data")
 async def get_audio_data(entry_id: str, request: Request) -> AudioDataResponse:
+    check_auth(request)
+
     req = AudioDataRequest.model_validate(request.query_params)
     file_path = env_config.appdata_dir / "temp" / f"{entry_id}.flac"
     if not file_path.is_file():
