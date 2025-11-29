@@ -58,7 +58,7 @@ class ShazamPlugin(TrackIdPlugin):
             track=MusicIdTrack(
                 track_id=str(shazam_track.key),
                 offset=match.offset,
-                track_name=shazam_track.title,
+                track_name=shazam_track.title.split(" (feat.")[0],
                 album_name=shazam_track.album,
                 artist_name=shazam_track.subtitle,
                 label=shazam_track.label,
