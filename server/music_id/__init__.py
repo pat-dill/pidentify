@@ -23,8 +23,11 @@ if not plugins_init.is_file():
 def load_plugin(plugin_name: str) -> TrackIdPlugin:
     plugin_module = importlib.import_module("." + plugin_name, package="server.music_id.plugins")
     for name, item in inspect.getmembers(plugin_module):
-        if issubclass(item, TrackIdPlugin):
-            return item()
+        try:
+            if issubclass(item, TrackIdPlugin):
+                return item()
+        except TypeError:
+            continue
 
     raise ValueError(f"Plugin {plugin_name} not found")
 

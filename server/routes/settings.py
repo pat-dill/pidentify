@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures.process import ProcessPoolExecutor
-
+from pathlib import Path
 import argon2
 from fastapi import APIRouter
 from pydantic_core.core_schema import NoneSchema
@@ -90,3 +90,13 @@ def get_audio_devices(request: Request):
         raise ErrorResponse(403, "not_authorized")
 
     return sd.query_devices()
+
+
+@api.get("/music-id-plugins")
+def get_music_id_plugins(request: Request):
+    if not is_admin(request):
+        raise ErrorResponse(403, "not_authorized")
+
+    plugins_dir = Path(__file__).parent.parent / "music_id" / "plugins"
+    plugins = [plugin.stem for plugin in plugins_dir.glob("*")]
+    return [plugin for plugin in plugins if not plugin.startswith("__")]    
