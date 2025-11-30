@@ -12,7 +12,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useLyrics } from "@/api/getLyrics";
 import { LyricsMini } from "@/components/Lyrics";
 import dayjs from "dayjs";
-import AlbumOverview from "@/components/AlbumOverview";
+import AlbumOverview from "@/features/Album/AlbumOverview";
 
 export function NowPlayingPage() {
   const status = useStatus();
