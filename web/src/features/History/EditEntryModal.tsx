@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateHistoryEntries } from "@/api/history/updateHistoryEntries";
 import { useEffect, useMemo } from "react";
 import { useHistoryAlbums } from "@/api/history/getHistoryAlbums";
+import { useHistoryArtists } from "@/api/history/getHistoryArtists";
 
 type EditEntryModalProps = {
   entry: HistoryEntryT;
@@ -25,6 +26,7 @@ type FormFields = {
   artist: string;
   duration: number;
   track_image: string;
+  artist_image: string;
 };
 
 export function EditEntryModal({
@@ -41,6 +43,7 @@ export function EditEntryModal({
     artist_name: entry.track.artist_name || "",
     duration_seconds: entry.track.duration_seconds || null,
     track_image: entry.track.track_image || "",
+    artist_image: entry.track.artist_image || "",
   };
 
   const artistName = Form.useWatch("artist_name", form);
@@ -69,6 +72,14 @@ export function EditEntryModal({
       value: album.album,
     }));
   }, [sameArtistAlbums]);
+
+  const { data: artists } = useHistoryArtists({ enabled: showing });
+  const artistOptions = useMemo(() => {
+    return artists?.data.map((artist) => ({
+      label: artist.artist,
+      value: artist.artist,
+    }));
+  }, [artists]);
 
   return (
     <Modal
@@ -126,6 +137,23 @@ export function EditEntryModal({
         </Flex>
         <Flex gap={5} style={{ width: "100%", marginBottom: 10 }}>
           <Form.Item
+            label="Artist"
+            name="artist_name"
+            rules={[{ required: true }]}
+            style={{ width: "50%", margin: 0 }}
+          >
+            <AutoComplete options={artistOptions}
+              onSelect={(value) => {
+                const artist = artists?.data.find(
+                  (artist) => artist.artist === value,
+                );
+                if (artist) {
+                  form.setFieldValue("artist_image", artist.artist_image_url ?? "");
+                }
+              }} />
+          </Form.Item>
+
+          <Form.Item
             label="Album"
             name="album_name"
             rules={[{ required: true }]}
@@ -143,18 +171,12 @@ export function EditEntryModal({
               }}
             />
           </Form.Item>
-
-          <Form.Item
-            label="Artist"
-            name="artist_name"
-            rules={[{ required: true }]}
-            style={{ width: "50%", margin: 0 }}
-          >
-            <Input />
-          </Form.Item>
         </Flex>
 
         <Form.Item label="Track Image" name="track_image" hidden>
+          <Input />
+        </Form.Item>
+        <Form.Item label="Artist Image" name="artist_image" hidden>
           <Input />
         </Form.Item>
       </Form>

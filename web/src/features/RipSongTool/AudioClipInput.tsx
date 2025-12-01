@@ -357,7 +357,7 @@ export function AudioClipInput(props: AudioClipInputProps) {
       </Flex>
 
       <audio ref={audioRef}>
-        <source src={src} type="audio/flac" />
+        <source src={src} />
       </audio>
     </div>
   );

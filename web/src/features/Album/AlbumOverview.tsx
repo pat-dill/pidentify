@@ -34,9 +34,25 @@ export default function AlbumOverview({ album }: { album?: AlbumT }) {
           styles={{ body: { padding: 0 } }}
         >
           <Flex vertical style={{ maxHeight: 200, overflowY: "auto" }}>
-            {album.tracks?.track?.map((track, idx) => {
-              const isCurrentTrack =
-                isCurrentAlbum && status?.track?.track_no === track["@attr"]?.rank;
+            {album.tracks?.track?.map((track, idx, tracks) => {
+              const trackNo = track["@attr"]?.rank ?? idx + 1;
+
+              let isCurrentTrack = false;
+              let startOffset: number | null = null;
+              if (isCurrentAlbum && status?.track?.track_no) {
+                if (status.track.track_no === trackNo) {
+                  isCurrentTrack = true;
+                } else if (status.track.track_no > trackNo) {
+                  startOffset = 0;
+                  let j = trackNo;
+                  while (j < status.track.track_no) {
+                    if (tracks[j - 1]?.duration) {
+                      startOffset -= tracks[j - 1]?.duration ?? 0;
+                    }
+                    j++;
+                  }
+                }
+              }
 
               return (
                 <Flex key={track.name}>
@@ -60,7 +76,7 @@ export default function AlbumOverview({ album }: { album?: AlbumT }) {
                           textAlign: "right",
                         }}
                       >
-                        {track["@attr"]?.rank}.
+                        {trackNo}.
                       </Typography.Text>
                       <Typography.Text style={{ lineClamp: 1 }}>
                         {track.name}
