@@ -18,7 +18,7 @@
     "clsx": "^2.1.1",
     "colorthief": "^2.6.0",
     "dayjs": "^1.11.13",
-    "next": "15.4.4",
+    "next": "15.4.8",
     "next-view-transitions": "^0.3.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",

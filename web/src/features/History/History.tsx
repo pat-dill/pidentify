@@ -6,6 +6,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import HistoryEntry from "@/features/History/HistoryEntry";
@@ -24,6 +25,7 @@ import {
   ManualEntryModal,
 } from "./ManualEntry/ManualEntryModal";
 import { useSessionStorage } from "react-use";
+import useSelection from "@/utils/useSelection";
 
 export default function History({ style }: { style?: CSSProperties }) {
   const queryClient = useQueryClient();
@@ -81,6 +83,14 @@ export default function History({ style }: { style?: CSSProperties }) {
     setManualEntryOpen(true);
   }, [entries, timeMarker]);
 
+  const entryIds = useMemo(
+    () => entries.map((entry) => entry.entry_id),
+    [entries],
+  );
+  const historySelect = useSelection(entryIds);
+
+  console.log(historySelect.pendingSelection);
+
   return (
     <>
       <Flex
@@ -133,6 +143,11 @@ export default function History({ style }: { style?: CSSProperties }) {
               }
             }
 
+            const isPendingSelect = historySelect.pendingSelection.has(
+              entry.entry_id,
+            );
+            const isSelected = historySelect.selected.has(entry.entry_id);
+
             return (
               <Fragment key={entry.entry_id}>
                 {timeMarker && (
@@ -144,7 +159,12 @@ export default function History({ style }: { style?: CSSProperties }) {
                     <div className="flex-grow h-[1px] bg-current opacity-40" />
                   </div>
                 )}
-                <HistoryEntry entry={entry} />
+                <HistoryEntry
+                  entry={entry}
+                  isPendingSelect={isPendingSelect}
+                  isSelected={isSelected}
+                  {...historySelect.getItemProps(idx)}
+                />
               </Fragment>
             );
           })}

@@ -8,7 +8,17 @@ import { Card, Flex, Typography } from "antd";
 import { Link } from "next-view-transitions";
 import HistoryEntryDropdown from "@/features/History/HistoryEntryDropdown";
 
-export default function HistoryEntry({ entry }: { entry: HistoryEntryT }) {
+export default function HistoryEntry({
+  entry,
+  isPendingSelect,
+  isSelected,
+  ...rest
+}: {
+  entry: HistoryEntryT;
+  isPendingSelect?: boolean;
+  isSelected?: boolean;
+  [key: string]: any;
+}) {
   const imgRef = useRef<HTMLImageElement>(undefined!);
   const [imgSrc, setImgSrc] = useState("");
 
@@ -28,7 +38,9 @@ export default function HistoryEntry({ entry }: { entry: HistoryEntryT }) {
         style={{
           viewTransitionName: `history-entry-${entry.entry_id}`,
           position: "relative",
+          outline: isPendingSelect || isSelected ? "2px solid #1677ff" : "none",
         }}
+        {...rest}
       >
         <Flex align="center" gap={8} style={{ paddingRight: 16 }}>
           <Image
