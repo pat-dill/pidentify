@@ -125,6 +125,8 @@ export function EditEntryModal({
     }));
   }, [artists]);
 
+  const isMultiEdit = entries.length > 1;
+
   return (
     <ThemeProvider sourceUrl={entries[0]?.track.track_image}>
       <Modal
@@ -164,7 +166,7 @@ export function EditEntryModal({
               label="Duration"
               name="duration_seconds"
               style={{ margin: 0 }}
-              hidden={entries.length > 0}
+              hidden={isMultiEdit}
             >
               <InputNumber<number>
                 min={0}

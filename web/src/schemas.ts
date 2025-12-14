@@ -50,6 +50,17 @@ export const trackSchema = z.object({
 
 export type TrackT = z.infer<typeof trackSchema>;
 
+const albumTrackSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  duration: z.number().nullish(),
+  "@attr": z
+    .object({
+      rank: z.number(),
+    })
+    .nullish(),
+});
+
 export const albumSchema = z.object({
   artist: z.string(),
   name: z.string(),
@@ -61,18 +72,7 @@ export const albumSchema = z.object({
     .nullish(),
   tracks: z
     .object({
-      track: z.array(
-        z.object({
-          name: z.string(),
-          url: z.string(),
-          duration: z.number().nullish(),
-          "@attr": z
-            .object({
-              rank: z.number(),
-            })
-            .nullish(),
-        }),
-      ),
+      track: z.union([z.array(albumTrackSchema), albumTrackSchema]),
     })
     .nullish(),
 });
