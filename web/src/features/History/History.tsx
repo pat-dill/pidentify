@@ -26,6 +26,11 @@ import {
 } from "./ManualEntry/ManualEntryModal";
 import { useSessionStorage } from "react-use";
 import useSelection from "@/utils/useSelection";
+import {
+  useDeleteHistoryEntries,
+  useDeleteHistoryEntry,
+} from "@/api/history/deleteHistoryEntry";
+import { EditEntryModal } from "./EditEntryModal";
 
 export default function History({ style }: { style?: CSSProperties }) {
   const queryClient = useQueryClient();
@@ -44,7 +49,10 @@ export default function History({ style }: { style?: CSSProperties }) {
     });
   }, [status?.track?.track_id]);
 
-  const entries = history.data?.pages?.map((page) => page.data).flat() || [];
+  const entries = useMemo(
+    () => history.data?.pages?.map((page) => page.data).flat() || [],
+    [history.data?.pages],
+  );
 
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const [manualEntryInitialValues, setManualEntryInitialValues] = useState<
@@ -87,9 +95,16 @@ export default function History({ style }: { style?: CSSProperties }) {
     () => entries.map((entry) => entry.entry_id),
     [entries],
   );
-  const historySelect = useSelection(entryIds);
+  const [selected, setSelected, pendingSelection, getSelectProps] =
+    useSelection(entryIds);
 
-  console.log(historySelect.pendingSelection);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const deleteHistoryEntriesMut = useDeleteHistoryEntries();
+
+  const editingEntries = useMemo(
+    () => entries.filter((entry) => selected.has(entry.entry_id)),
+    [entries, selected],
+  );
 
   return (
     <>
@@ -143,10 +158,8 @@ export default function History({ style }: { style?: CSSProperties }) {
               }
             }
 
-            const isPendingSelect = historySelect.pendingSelection.has(
-              entry.entry_id,
-            );
-            const isSelected = historySelect.selected.has(entry.entry_id);
+            const isPendingSelect = pendingSelection.has(entry.entry_id);
+            const isSelected = selected.has(entry.entry_id);
 
             return (
               <Fragment key={entry.entry_id}>
@@ -163,7 +176,20 @@ export default function History({ style }: { style?: CSSProperties }) {
                   entry={entry}
                   isPendingSelect={isPendingSelect}
                   isSelected={isSelected}
-                  {...historySelect.getItemProps(idx)}
+                  onEdit={() => {
+                    if (!selected.has(entry.entry_id)) {
+                      setSelected(new Set([...selected, entry.entry_id]));
+                    }
+                    setShowEditModal(true);
+                  }}
+                  onDelete={() => {
+                    if (selected.has(entry.entry_id)) {
+                      deleteHistoryEntriesMut.mutate(Array.from(selected));
+                    } else {
+                      deleteHistoryEntriesMut.mutate([entry.entry_id]);
+                    }
+                  }}
+                  {...getSelectProps(entry.entry_id)}
                 />
               </Fragment>
             );
@@ -175,6 +201,12 @@ export default function History({ style }: { style?: CSSProperties }) {
         open={manualEntryOpen}
         onClose={() => setManualEntryOpen(false)}
         initialValues={manualEntryInitialValues}
+      />
+
+      <EditEntryModal
+        entries={editingEntries}
+        showing={showEditModal}
+        setShowing={setShowEditModal}
       />
     </>
   );

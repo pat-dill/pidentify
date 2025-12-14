@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter
 from starlette.requests import Request
 
-from server import db
+from server import db, sql_schemas
 from server.exceptions import ErrorResponse
 from server.models import HistoryEntry, PaginateQuery, PaginatedResponse, ResponseModel, BaseModel
 from server.auth import is_admin
@@ -25,6 +25,15 @@ class UpdateHistoryRequest(BaseModel):
     album_name: str | None = None
     track_image: str | None = None
     artist_image: str | None = None
+
+
+class BatchUpdateHistoryRequest(BaseModel):
+    entry_ids: list[str]
+    data: UpdateHistoryRequest
+
+
+class BatchDeleteEntryRequest(BaseModel):
+    entry_ids: list[str]
 
 
 class AddManualEntryRequest(BaseModel):    
@@ -56,6 +65,27 @@ def get_history(params: PaginateQuery) -> PaginatedResponse:
         page=params.page,
         page_size=params.page_size
     ).response()
+
+
+@api.delete("/batch")
+def batch_delete_entries(delete_data: BatchDeleteEntryRequest, request: Request) -> ResponseModel:
+    check_auth(request)
+
+    db.delete_history_entries(sql_schemas.HistoryEntry.entry_id.in_([UUID(entry_id) for entry_id in delete_data.entry_ids]))
+    return ResponseModel()
+
+
+@api.patch("/batch")
+def batch_update_track(update_data: BatchUpdateHistoryRequest, request: Request) -> ResponseModel:
+    check_auth(request)
+
+    entries = db.multi_get_history_entry([UUID(entry_id) for entry_id in update_data.entry_ids])
+    db.update_db_track(
+        *[entry.track_guid for entry in entries],
+        **update_data.data.model_dump(exclude_unset=True)
+    )
+
+    return ResponseModel(success=True)
 
 
 @api.delete("/{entry_id}")

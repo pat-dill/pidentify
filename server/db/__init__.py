@@ -102,16 +102,14 @@ def get_db_track_from_music_id(track_id: str, source: str = "", **kwargs) -> mod
         return models.DbTrack.model_validate(db_track, from_attributes=True)
 
 
-def update_db_track(track_guid: UUID, **kwargs) -> models.DbTrack:
+def update_db_track(*track_guid: UUID, **kwargs):
     with db_client.session() as session:
-        db_track = session.execute(
+        session.execute(
             update(Track)
             .values(**kwargs)
-            .where(Track.track_guid == track_guid)
-            .returning(Track)
-        ).scalar_one()
+            .where(Track.track_guid.in_(track_guid))
+        )
         session.commit()
-        return models.DbTrack.model_validate(db_track, from_attributes=True)
 
 
 def add_or_update_db_track_by_name(track_name: str, artist_name: str, album_name: str, **kwargs) -> models.DbTrack:
@@ -151,6 +149,23 @@ def get_history_entry(entry_id) -> models.HistoryEntry | None:
         entry = models.HistoryEntry.model_validate(db_entry, from_attributes=True)
         entry.track = models.DbTrack.model_validate(db_track, from_attributes=True)
         return entry
+
+
+def multi_get_history_entry(entry_ids: list[UUID]) -> list[models.HistoryEntry]:
+    with db_client.session() as session:
+        results = session.execute(
+            select(HistoryEntry, Track)
+            .where(HistoryEntry.entry_id.in_(entry_ids))
+            .join(Track, Track.track_guid == HistoryEntry.track_guid)
+        ).all()
+
+        def conv(row):
+            db_entry, db_track = row
+            entry = models.HistoryEntry.model_validate(db_entry, from_attributes=True)
+            entry.track = models.DbTrack.model_validate(db_track, from_attributes=True)
+            return entry
+
+        return [conv(result) for result in results]
 
 
 def save_history_entry(*, track_guid, detected_at: datetime, started_at: datetime, **kwargs):

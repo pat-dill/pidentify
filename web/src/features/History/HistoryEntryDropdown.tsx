@@ -14,18 +14,19 @@ import { useAnimationFrame } from "@/utils/useAnimationFrame";
 import { useClientConfig } from "@/api/getClientConfig";
 import { Dropdown, MenuProps, theme, Tooltip } from "antd";
 import { Link, useTransitionRouter } from "next-view-transitions";
-import { getHistoryQuery } from "@/api/history/getHistory";
-import { useDeleteHistoryEntry } from "@/api/history/deleteHistoryEntry";
-import { EditEntryModal } from "@/features/History/EditEntryModal";
 
 type HistoryEntryDropdownProps = {
   entry: HistoryEntryT;
   dotSize?: number;
+  onEdit?: () => void;
+  onDelete?: () => void;
 };
 
 export default function HistoryEntryDropdown({
   entry,
   dotSize = 4,
+  onEdit,
+  onDelete,
 }: HistoryEntryDropdownProps) {
   const { data: clientConfig } = useClientConfig();
   const queryClient = useQueryClient();
@@ -48,72 +49,69 @@ export default function HistoryEntryDropdown({
   const hasUnfinishedRip = clientConfig?.can_save && entry.saved_temp_buffer;
 
   const startRip = useStartHistoryEntryRip();
-  const deleteHistoryEntry = useDeleteHistoryEntry();
 
-  const [showEditModal, setShowEditModal] = useState(false);
-
-  const items: MenuProps["items"] = useMemo(
-    () => [
-      ...(clientConfig?.can_edit_history
-        ? [
-            {
-              key: "edit",
-              icon: <EditOutlined />,
-              label: <a onClick={() => setShowEditModal(true)}>Edit</a>,
-            },
-            {
-              key: "delete",
-              icon: <DeleteOutlined />,
-              label: (
-                <Tooltip title="Double click to delete">
-                  <a
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    onDoubleClick={() =>
-                      deleteHistoryEntry.mutate(entry.entry_id)
-                    }
-                  >
-                    Delete
-                  </a>
-                </Tooltip>
-              ),
-              disabled: deleteHistoryEntry.isPending,
-            },
-          ]
-        : []),
-      ...(canSave
-        ? [
-            {
-              key: "save",
-              icon: <ScissorOutlined />,
-              label: (
+  const items: MenuProps["items"] = [
+    ...(clientConfig?.can_edit_history
+      ? [
+          {
+            key: "edit",
+            icon: <EditOutlined />,
+            label: (
+              <a
+                onClick={() => {
+                  onEdit?.();
+                }}
+              >
+                Edit
+              </a>
+            ),
+          },
+          {
+            key: "delete",
+            icon: <DeleteOutlined />,
+            label: (
+              <Tooltip title="Double click to delete">
                 <a
-                  onClick={() => startRip.mutate({ entry_id: entry.entry_id })}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onDoubleClick={onDelete}
                 >
-                  Trim & Save to Library
+                  Delete
                 </a>
-              ),
-              disabled: startRip.isPending,
-            },
-          ]
-        : []),
-      ...(hasUnfinishedRip
-        ? [
-            {
-              key: "view-rip",
-              icon: <ScissorOutlined />,
-              label: (
-                <Link href={`/rip/${entry.entry_id}`}>
-                  Trim & Save to Library
-                </Link>
-              ),
-            },
-          ]
-        : []),
-    ],
-    [canSave, clientConfig, entry],
-  );
+              </Tooltip>
+            ),
+          },
+        ]
+      : []),
+    ...(canSave
+      ? [
+          {
+            key: "save",
+            icon: <ScissorOutlined />,
+            label: (
+              <a onClick={() => startRip.mutate({ entry_id: entry.entry_id })}>
+                Trim & Save to Library
+              </a>
+            ),
+            disabled: startRip.isPending,
+          },
+        ]
+      : []),
+    ...(hasUnfinishedRip
+      ? [
+          {
+            key: "view-rip",
+            icon: <ScissorOutlined />,
+            label: (
+              <Link href={`/rip/${entry.entry_id}`}>
+                Trim & Save to Library
+              </Link>
+            ),
+          },
+        ]
+      : []),
+  ];
 
   const {
     token: { colorText },
@@ -154,12 +152,6 @@ export default function HistoryEntryDropdown({
           </Dropdown>
         </div>
       )}
-
-      <EditEntryModal
-        entry={entry}
-        showing={showEditModal}
-        setShowing={setShowEditModal}
-      />
     </>
   );
 }

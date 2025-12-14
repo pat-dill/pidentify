@@ -12,11 +12,15 @@ export default function HistoryEntry({
   entry,
   isPendingSelect,
   isSelected,
+  onEdit,
+  onDelete,
   ...rest
 }: {
   entry: HistoryEntryT;
   isPendingSelect?: boolean;
   isSelected?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
   [key: string]: any;
 }) {
   const imgRef = useRef<HTMLImageElement>(undefined!);
@@ -83,7 +87,11 @@ export default function HistoryEntry({
           </Flex>
         </Flex>
 
-        <HistoryEntryDropdown entry={entry} />
+        <HistoryEntryDropdown
+          entry={entry}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       </Card>
     </ThemeProvider>
   );

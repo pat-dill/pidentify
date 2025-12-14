@@ -14,3 +14,16 @@ export function useDeleteHistoryEntry() {
     onSettled: () => queryClient.invalidateQueries(getHistoryQuery()),
   });
 }
+
+function deleteHistoryEntries(entries: string[]) {
+  return delete_(`/api/history/batch`, { entry_ids: entries });
+}
+
+export function useDeleteHistoryEntries() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entries: string[]) => deleteHistoryEntries(entries),
+    onSettled: () => queryClient.invalidateQueries(getHistoryQuery()),
+  });
+}
