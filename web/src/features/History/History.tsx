@@ -178,7 +178,11 @@ export default function History({ style }: { style?: CSSProperties }) {
                   isSelected={isSelected}
                   onEdit={() => {
                     if (!selected.has(entry.entry_id)) {
-                      setSelected(new Set([...selected, entry.entry_id]));
+                      if (selected.size <= 1) {
+                        setSelected(new Set([entry.entry_id]));
+                      } else {
+                        setSelected(new Set([...selected, entry.entry_id]));
+                      }
                     }
                     setShowEditModal(true);
                   }}
