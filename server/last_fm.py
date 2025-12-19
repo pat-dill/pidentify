@@ -6,13 +6,17 @@ import httpx
 from server.cache import cached, async_cached
 from server.config import env_config, file_config
 from server.logger import logger
-from server.models import LastFMTrack, LastFMArtist
+from server.models import BaseModel, LastFMTrack, LastFMArtist
 from server.utils import duration_to_seconds
 
 duration_re = re.compile(r"((\d{1,2}:)+\d\d)")
 
 
-@async_cached(60 * 60, encoder=LastFMTrack.model_dump_json, decoder=LastFMTrack.model_validate_json, cache_none=True)
+class LastFMAlbum(BaseModel):
+    pass
+
+
+@async_cached(24 * 60 * 60, encoder=LastFMTrack.model_dump_json, decoder=LastFMTrack.model_validate_json, cache_none=True)
 async def get_last_fm_track(title, artist) -> LastFMTrack | None:
     async with httpx.AsyncClient() as client:
         try:
@@ -66,7 +70,7 @@ async def get_last_fm_artist(name: str) -> LastFMArtist | None:
             return None
 
 
-@async_cached(60 * 60, cache_none=True)
+@async_cached(24 * 60 * 60, cache_none=True)
 async def get_last_fm_album(artist: str, album: str) -> dict | None:
     """Get album info from LastFM, including track listing with positions."""
     async with httpx.AsyncClient() as client:
