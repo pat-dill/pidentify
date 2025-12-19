@@ -1,7 +1,7 @@
 from pydantic import ConfigDict
 from server.models import HistoryEntry
 
-
+import asyncio
 from datetime import datetime
 from uuid import UUID
 
@@ -14,6 +14,7 @@ from server.models import HistoryEntry, PaginateQuery, PaginatedResponse, Respon
 from server.auth import is_admin
 from server.db import UniqueAlbum, UniqueArtist
 from server.utils import utcnow, snake_to_camel
+from server.last_fm import get_last_fm_track
 
 
 # Request models
@@ -109,14 +110,26 @@ def update_track(entry_id: str, update_data: UpdateHistoryRequest, request: Requ
 def add_manual_entry(entry_data: AddManualEntryRequest, request: Request) -> ResponseModel[HistoryEntry]:
     check_auth(request)
 
+    # Fetch LastFM track data
+    last_fm_track = asyncio.run(get_last_fm_track(entry_data.track_name, entry_data.artist_name))
+    
+    # Prepare kwargs for add_or_update_db_track_by_name
+    track_kwargs = {
+        "track_image": entry_data.track_image,
+        "artist_image": entry_data.artist_image,
+        "track_no": entry_data.track_no,
+        "duration_seconds": entry_data.duration_seconds,
+    }
+    
+    # Add last_fm data if found
+    if last_fm_track:
+        track_kwargs["last_fm"] = last_fm_track.model_dump()
+
     db_track = db.add_or_update_db_track_by_name(
         track_name=entry_data.track_name,
         artist_name=entry_data.artist_name,
         album_name=entry_data.album_name,
-        track_image=entry_data.track_image,
-        artist_image=entry_data.artist_image,
-        track_no=entry_data.track_no,
-        duration_seconds=entry_data.duration_seconds,
+        **track_kwargs
     )
     db_entry = db.save_history_entry(
         track_guid=db_track.track_guid,
