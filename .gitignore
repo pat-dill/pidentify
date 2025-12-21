@@ -1,5 +1,7 @@
 # Hidden directories
-**/.*/
+.pidentify-dev/
+.idea/
+dev_cache/
 
 _frontend/dist
 
