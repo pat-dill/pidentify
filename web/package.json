@@ -27,6 +27,7 @@
     "react-redux": "^9.2.0",
     "react-use": "^17.6.0",
     "react-use-websocket": "^4.13.0",
+    "redux-persist": "^6.0.0",
     "uuid": "^11.1.0",
     "zod": "^4.0.11"
   },

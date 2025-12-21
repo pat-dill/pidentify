@@ -28,7 +28,7 @@ async def get_last_fm_track(title, artist) -> LastFMTrack | None:
                 "format": "json"
             })).json()
 
-            if "track" not in resp or not resp["track"]:
+            if not resp.get("track"):
                 return None
 
             track = LastFMTrack(**resp["track"])
