@@ -42,7 +42,7 @@ export function ThemeProvider({
   });
   const imgColor = useImageColorFromUrl(imgSrc);
 
-  const backgroundColor = imgColor ?? "#111111";
+  const backgroundColor = imgColor ?? "#aaaaaa";
 
   const lightText = isDarkColor(
     backgroundColor,
