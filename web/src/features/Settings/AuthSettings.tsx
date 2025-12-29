@@ -1,10 +1,10 @@
 "use client";
 
-import { Flex, Form, Input, InputNumber, Select } from "antd";
-
-import { useMemo } from "react";
+import { useSettings } from "@/api/settings/getSettings";
+import { Flex, Form, Input } from "antd";
 
 export function AuthSettingsForm() {
+  const { data: settings } = useSettings();
 
   return (
     <>
@@ -15,7 +15,7 @@ export function AuthSettingsForm() {
       </Form.Item>
 
       <Flex gap={12} justify="space-between">
-        <Form.Item label="Current Password" name="old_password" style={{ width: "50%" }}>
+        <Form.Item label="Current Password" name="old_password" style={{ width: "50%" }} hidden={!settings?.has_password}>
           <Input.Password
             placeholder="Current Password"
             style={{ width: "100%" }}

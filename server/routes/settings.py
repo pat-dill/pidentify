@@ -3,6 +3,7 @@ from concurrent.futures.process import ProcessPoolExecutor
 from pathlib import Path
 import argon2
 from fastapi import APIRouter
+from pydantic import computed_field
 from pydantic_core.core_schema import NoneSchema
 from sqlalchemy_utils.types.password import passlib
 from starlette.requests import Request
@@ -45,6 +46,12 @@ class UpdateSettingsRequest(BaseModel):
     new_password: str | None = None
 
 
+class SettingsResponse(FileConfig):
+    @computed_field
+    def has_password(self) -> bool:
+        return self.admin_password_hash is not None
+
+
 # == API routes ==
 
 api = APIRouter(prefix="/api/settings")
@@ -52,11 +59,11 @@ api = APIRouter(prefix="/api/settings")
 
 @api.get("/")
 @api.get("")
-def get_settings(request: Request) -> FileConfig:
+def get_settings(request: Request) -> SettingsResponse:
     if not is_admin(request):
         raise ErrorResponse(403, "not_authorized")
 
-    return FileConfig.load()
+    return SettingsResponse.load()
 
 
 @api.patch("/")

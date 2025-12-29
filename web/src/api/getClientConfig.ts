@@ -26,7 +26,7 @@ export function getClientConfigQuery() {
   return {
     queryKey: ["client-config"],
     queryFn: () => getClientConfig(),
-    staleTime: 0,
+    staleTime: 60_000,
   };
 }
 

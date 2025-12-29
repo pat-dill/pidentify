@@ -24,6 +24,7 @@ const settingsResponse = z.object({
   music_id_plugin: z.string(),
 
   admin_username: z.string(),
+  has_password: z.boolean(),
 });
 type SettingsResponseT = z.infer<typeof settingsResponse>;
 
