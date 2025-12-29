@@ -1,16 +1,18 @@
 # Build stage
 FROM node:20-alpine AS builder
 
-# Enable Corepack for Yarn management
-RUN corepack enable
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json yarn.lock* ./
+# Enable Corepack and prepare Yarn v3
+RUN corepack enable && corepack prepare yarn@3.8.4 --activate
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+# Copy package files and Yarn configuration
+COPY package.json yarn.lock* .yarnrc.yml* ./
+
+RUN yarn install --immutable
 
 # Copy source code
 COPY . .
@@ -21,9 +23,6 @@ RUN yarn build
 # Production stage
 FROM node:20-alpine AS runner
 
-# Enable Corepack for Yarn management
-RUN corepack enable
-
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -32,13 +31,11 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy package files
+# Copy package files for reference
 COPY package.json yarn.lock* ./
 
-# Install all dependencies (Next.js runtime needs them)
-RUN yarn install --frozen-lockfile --production=false
-
-# Copy built application from builder
+# Copy node_modules and built application from builder
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
