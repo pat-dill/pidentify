@@ -34,6 +34,9 @@ RUN corepack enable && corepack prepare yarn@3.8.4 --activate
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Create .yarn directory with proper permissions for Yarn v3
+RUN mkdir -p /app/.yarn && chown -R nextjs:nodejs /app/.yarn
+
 # Copy package files for reference
 COPY package.json yarn.lock* ./
 
