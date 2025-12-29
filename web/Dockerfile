@@ -27,6 +27,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Enable Corepack for Yarn v3
+RUN corepack enable && corepack prepare yarn@3.8.4 --activate
+
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
