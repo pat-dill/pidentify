@@ -86,7 +86,7 @@ export default function CurrentTrack({
         >
           {status?.last_fm_track?.name ??
             status.track?.track_name ??
-            "Track Not Found"}
+            "No Track Found"}
         </Typography.Title>
 
         <Typography.Title
@@ -100,7 +100,7 @@ export default function CurrentTrack({
             "line-clamp-1": compact,
           })}
         >
-          {status?.track?.artist_name ?? "Unknown"}
+          {status?.track?.artist_name ?? ""}
         </Typography.Title>
 
         {status?.duration_seconds ? (
