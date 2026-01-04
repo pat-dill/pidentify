@@ -1,6 +1,5 @@
 import { LastFMTrackT } from "../schemas";
 import { Button, Card, Typography } from "antd";
-import { Link } from "next-view-transitions";
 
 export default function AboutTrack({ track }: { track: LastFMTrackT }) {
   // noinspection TypeScriptValidateTypes
@@ -21,11 +20,11 @@ export default function AboutTrack({ track }: { track: LastFMTrackT }) {
         </Typography.Paragraph>
       )}
 
-      <Link href={`${track.url}/+wiki`} target="_blank">
+      <a href={`${track.url}/+wiki`} target="_blank" rel="noopener noreferrer">
         <Button type="link" style={{ padding: 0, margin: 0, fontWeight: 500 }}>
           Read more
         </Button>
-      </Link>
+      </a>
     </Card>
   );
 }

@@ -1,6 +1,4 @@
-import { isServer } from "@tanstack/react-query";
-
-async function getHeaders(customHeaders?: HeadersInit): Promise<HeadersInit> {
+function getHeaders(customHeaders?: HeadersInit): HeadersInit {
   // Convert HeadersInit to a plain object for easier manipulation
   const headersObj: Record<string, string> = {};
 
@@ -20,23 +18,6 @@ async function getHeaders(customHeaders?: HeadersInit): Promise<HeadersInit> {
 
   headersObj["Accept"] = "application/json";
 
-  // Forward session cookie from Next.js to API server when on server side
-  if (isServer) {
-    try {
-      const nextHeaders = await import("next/headers");
-      // In Next.js 15, cookies() may return a Promise in some contexts
-      const cookieStore = await nextHeaders.cookies();
-      const sessionCookie = cookieStore.get("session");
-      if (sessionCookie) {
-        // Add Cookie header to forward the session cookie
-        headersObj["Cookie"] = `session=${sessionCookie.value}`;
-      }
-    } catch (e) {
-      // cookies() can only be called in Server Components/Route Handlers
-      // If it fails, continue without the cookie
-    }
-  }
-
   return headersObj;
 }
 
@@ -49,7 +30,7 @@ interface RequestOpts {
 }
 
 export function getBaseUrl() {
-  return isServer ? process.env.API_PROXY : "";
+  return "";
 }
 
 export async function request(
@@ -59,7 +40,7 @@ export async function request(
 ) {
   opts ??= {};
 
-  const headers = await getHeaders(opts?.headers);
+  const headers = getHeaders(opts?.headers);
 
   const requestOptions: RequestInit = {
     method: method,
@@ -91,10 +72,7 @@ export async function request(
 
     return response;
   } catch (e) {
-    if (!isServer) {
-      console.warn(e);
-    }
-
+    console.warn(e);
     throw e;
   }
 }

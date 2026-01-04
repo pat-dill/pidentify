@@ -2,7 +2,7 @@
 
 import { useCheckAuth } from "@/api/auth/checkAuth";
 import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
-import { Link } from "next-view-transitions";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { SignInModal } from "./SignInModal";
 import { useSignOut } from "@/api/auth/signOut";

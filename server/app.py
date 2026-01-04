@@ -21,6 +21,7 @@ sys.path.append(str(Path(__file__).parents))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from server.redis_client import get_redis
 from server.routes import status, history, rip_tool, auth, settings
 from server.routes.status import get_status
@@ -184,3 +185,35 @@ def handle_err_response(request: Request, exc: ErrorResponse) -> JSONResponse:
         status_code=exc.code,
         content=ResponseModel(success=False, status=exc.status, message=exc.message).model_dump()
     )
+
+
+# Serve static files from the static directory (must be after all API routes)
+static_path = Path(__file__).parent / "static"
+if static_path.exists():
+    # Mount static assets directory
+    assets_path = static_path / "assets"
+    if assets_path.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+    
+    # Serve index.html for all non-API routes (for React Router)
+    # This catch-all route must be added last and handles GET/HEAD requests
+    @app.route("/{full_path:path}", methods=["GET", "HEAD"])
+    @app.route("/", methods=["GET", "HEAD"])
+    async def serve_frontend(request: Request, full_path: str = ""):
+        # Don't serve frontend for API routes (shouldn't reach here, but safety check)
+        if full_path.startswith("api/"):
+            from starlette.responses import Response
+            return Response(status_code=404)
+        
+        # Check if it's a static asset request (like favicon.ico, etc.)
+        static_file = static_path / full_path
+        if static_file.exists() and static_file.is_file():
+            return FileResponse(str(static_file))
+        
+        # For all other routes, serve index.html (React Router will handle routing)
+        index_file = static_path / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        
+        from starlette.responses import Response
+        return Response(status_code=404)

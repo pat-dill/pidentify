@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAnimationFrame } from "@/utils/useAnimationFrame";
 import { useClientConfig } from "@/api/getClientConfig";
 import { Dropdown, MenuProps, theme, Tooltip } from "antd";
-import { Link, useTransitionRouter } from "next-view-transitions";
+import { Link, useNavigate } from "react-router-dom";
 
 type HistoryEntryDropdownProps = {
   entry: HistoryEntryT;
@@ -104,7 +104,7 @@ export default function HistoryEntryDropdown({
             key: "view-rip",
             icon: <ScissorOutlined />,
             label: (
-              <Link href={`/rip/${entry.entry_id}`}>
+              <Link to={`/rip/${entry.entry_id}`}>
                 Trim & Save to Library
               </Link>
             ),

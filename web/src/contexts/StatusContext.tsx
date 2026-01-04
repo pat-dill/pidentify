@@ -9,9 +9,6 @@ import { useWebsocketHost } from "@/api/useWebsocketHost";
 
 type StatusContextT = StatusT | undefined;
 
-const HTTP_WEBSOCKET_URL = `${process.env.NEXT_PUBLIC_HTTP_WEBSOCKET_PROXY}/api/status/ws`;
-const HTTPS_WEBSOCKET_URL = `${process.env.NEXT_PUBLIC_HTTPS_WEBSOCKET_PROXY}/api/status/ws`;
-
 const statusContext = createContext<StatusContextT>(undefined!);
 
 export function StatusContextProvider({

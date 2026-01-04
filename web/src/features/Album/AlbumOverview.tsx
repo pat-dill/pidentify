@@ -1,7 +1,6 @@
 import { AlbumT } from "@/schemas";
-import Image from "next/image";
 import { Button, Card, Flex, List, theme, Typography } from "antd";
-import { Link } from "next-view-transitions";
+import { Link } from "react-router-dom";
 import { useMemo, useRef, useState } from "react";
 import { CarryOutFilled } from "@ant-design/icons";
 import { useStatus } from "@/contexts/StatusContext";

@@ -1,7 +1,5 @@
 import { LastFMArtistT, TrackT } from "@/schemas";
-import Image from "next/image";
 import { Button, Card, Typography } from "antd";
-import { Link } from "next-view-transitions";
 import { useRef } from "react";
 
 export default function AboutArtist({
@@ -22,16 +20,15 @@ export default function AboutArtist({
     <Card
       cover={
         img && (
-          <Image
+          <img
             src={img}
             alt={artist.name}
             style={{
               objectFit: "cover",
               objectPosition: "50% 27.5%",
               aspectRatio: "2/1",
+              width: "100%",
             }}
-            width={300}
-            height={300}
             ref={imgRef}
           />
         )
@@ -50,11 +47,11 @@ export default function AboutArtist({
         </Typography.Paragraph>
       )}
 
-      <Link href={`${artist.url}/+wiki`} target="_blank">
+      <a href={`${artist.url}/+wiki`} target="_blank" rel="noopener noreferrer">
         <Button type="link" style={{ padding: 0, margin: 0, fontWeight: 500 }}>
           Read more
         </Button>
-      </Link>
+      </a>
     </Card>
     // </ThemeProvider>
   );

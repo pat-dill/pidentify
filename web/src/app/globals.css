@@ -3,6 +3,8 @@
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --font-geist-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono", ui-monospace, "SFMono-Regular", "Menlo", "Monaco", "Consolas", monospace;
 }
 
 @theme inline {
@@ -25,7 +27,22 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Geist, Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans);
+  /* Font rendering optimizations similar to Next.js */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1;
+  font-kerning: normal;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-geist-mono);
+  font-feature-settings: "kern" 1;
+  font-kerning: normal;
 }
 
 button {

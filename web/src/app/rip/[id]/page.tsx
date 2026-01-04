@@ -1,41 +1,20 @@
-import { getQueryClient } from "@/utils/getQueryClient";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { StatusContextProvider } from "@/contexts/StatusContext";
 import { RipSongPage } from "@/features/RipSongTool/RipSongPage";
-import { getRipQuery, prefetchRipQuery } from "@/api/rip/getRip";
 import { FloatingCurrentTrack } from "@/features/NowPlaying/FloatingCurrentTrack";
-import { prefetchClientConfig } from "@/api/getClientConfig";
-import { notFound, redirect } from "next/navigation";
+import { useParams } from "react-router-dom";
 
-type RipSongProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+export default function RipSong() {
+  const { id } = useParams<{ id: string }>();
 
-export default async function RipSong({ params }: RipSongProps) {
-  const queryClient = getQueryClient();
-  const { id } = await params;
-
-  try {
-    await getRipQuery({ entryId: id }).queryFn();
-  } catch (e) {
-    notFound();
-    return null;
+  if (!id) {
+    return <div>Not Found</div>;
   }
 
-  await Promise.all([
-    prefetchRipQuery(queryClient, { entryId: id }),
-    prefetchClientConfig(queryClient),
-  ]);
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <StatusContextProvider suspend={false}>
-        <FloatingCurrentTrack>
-          <RipSongPage />
-        </FloatingCurrentTrack>
-      </StatusContextProvider>
-    </HydrationBoundary>
+    <StatusContextProvider suspend={false}>
+      <FloatingCurrentTrack>
+        <RipSongPage />
+      </FloatingCurrentTrack>
+    </StatusContextProvider>
   );
 }

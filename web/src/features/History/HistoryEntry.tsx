@@ -2,10 +2,9 @@
 
 import { HistoryEntryT } from "@/schemas";
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Card, Flex, Typography } from "antd";
-import { Link } from "next-view-transitions";
+import { Link } from "react-router-dom";
 import HistoryEntryDropdown from "@/features/History/HistoryEntryDropdown";
 
 export default function HistoryEntry({
@@ -47,7 +46,7 @@ export default function HistoryEntry({
         {...rest}
       >
         <Flex align="center" gap={8} style={{ paddingRight: 16 }}>
-          <Image
+          <img
             className="aspect-square flex-none"
             width={48}
             height={48}
@@ -55,6 +54,7 @@ export default function HistoryEntry({
             ref={imgRef}
             alt={entry.track.track_name || ""}
             crossOrigin="anonymous"
+            style={{ width: 48, height: 48, objectFit: "cover" }}
           />
 
           <Flex vertical>
@@ -71,7 +71,7 @@ export default function HistoryEntry({
               {entry.track.artist_name || "Unknown artist"}
             </Typography>
 
-            <Link href={entry.track.last_fm?.url || "#"}>
+            <a href={entry.track.last_fm?.url || "#"} target="_blank" rel="noopener noreferrer">
               <Typography
                 style={{
                   fontSize: 16,
@@ -83,7 +83,7 @@ export default function HistoryEntry({
               >
                 {entry.track.track_name}
               </Typography>
-            </Link>
+            </a>
           </Flex>
         </Flex>
 
