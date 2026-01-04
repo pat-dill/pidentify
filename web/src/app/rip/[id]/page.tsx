@@ -2,6 +2,7 @@ import { StatusContextProvider } from "@/contexts/StatusContext";
 import { RipSongPage } from "@/features/RipSongTool/RipSongPage";
 import { FloatingCurrentTrack } from "@/features/NowPlaying/FloatingCurrentTrack";
 import { useParams } from "react-router-dom";
+import Layout from "./layout";
 
 export default function RipSong() {
   const { id } = useParams<{ id: string }>();
@@ -12,9 +13,11 @@ export default function RipSong() {
 
   return (
     <StatusContextProvider suspend={false}>
-      <FloatingCurrentTrack>
-        <RipSongPage />
-      </FloatingCurrentTrack>
+      <Layout>
+        <FloatingCurrentTrack>
+          <RipSongPage />
+        </FloatingCurrentTrack>
+      </Layout>
     </StatusContextProvider>
   );
 }
