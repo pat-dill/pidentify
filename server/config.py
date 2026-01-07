@@ -7,9 +7,6 @@ import secrets
 import yaml
 
 
-config_fp = env_config.appdata_dir / "config.yaml"
-
-
 class EnvConfig(BaseModel):
     class Config:
         alias_generator = str.upper
@@ -31,9 +28,14 @@ class EnvConfig(BaseModel):
     recorder_service_path: Path = Path("/run/service/recorder")
 
 
+env_config = EnvConfig.model_validate(os.environ)
+config_fp = env_config.appdata_dir / "config.yaml"
+
+
 class FileConfig(BaseModel):
     class Config:
         populate_by_name = True
+        
     
     device: str | None = ""
     device_offset: float = 0  # how many seconds behind is the displayed timestamp from the actual timestamp
@@ -72,6 +74,9 @@ class FileConfig(BaseModel):
         
         config_obj = yaml.safe_load(config_fp.read_text())
         return cls.model_validate(config_obj)
+        
+
+file_config = FileConfig.load()
 
 
 class ClientConfig(BaseModel):
@@ -82,7 +87,3 @@ class ClientConfig(BaseModel):
     temp_save_offset: int
     initial_setup_complete: bool
     is_admin: bool
-
-
-env_config = EnvConfig.model_validate(os.environ)
-file_config = FileConfig.load()
