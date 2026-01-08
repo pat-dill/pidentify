@@ -14,7 +14,10 @@ export default function useSafeClientSplit<T>(
   clientValue: T | (() => T),
   serverValue?: T,
 ) {
-  const [initialRender, setInitialRender] = useState(true);
+  // this is no longer necessary since vite migration
+  // TODO: remove all uses of this function
+
+  const [initialRender, setInitialRender] = useState(false);
 
   useEffect(() => {
     setInitialRender(false);

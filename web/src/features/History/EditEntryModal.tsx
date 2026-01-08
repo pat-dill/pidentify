@@ -90,7 +90,11 @@ export function EditEntryModal({
 
   const editEntryMut = useMutation({
     mutationFn: async (values: FormFields) => {
-      const changedValues = getTouchedValues(values, form) as UpdateHistoryOpts;
+      const changedValues = getTouchedValues(
+        values,
+        form,
+        initialValues,
+      ) as UpdateHistoryOpts;
       await updateHistoryEntries(
         entries.map((entry) => entry.entry_id),
         changedValues,
