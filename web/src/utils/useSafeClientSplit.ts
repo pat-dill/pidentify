@@ -17,5 +17,8 @@ export default function useSafeClientSplit<T>(
   // this is no longer necessary since vite migration
   // TODO: remove all uses of this function
 
-  return clientValue;
+  return typeof clientValue === "function"
+    ? // @ts-ignore
+      clientValue()
+    : clientValue;
 }
