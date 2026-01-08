@@ -6,7 +6,7 @@ import { TimeUntil } from "@/components/TimeUntil";
 import { useClientConfig } from "@/api/getClientConfig";
 import { scanNow } from "@/api/scanNow";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "next-view-transitions";
+import { Link } from "react-router-dom";
 import useSafeClientSplit from "@/utils/useSafeClientSplit";
 import clsx from "clsx";
 import { ScanningToast } from "@/features/NowPlaying/ScanningToast";
@@ -53,7 +53,7 @@ export default function CurrentTrack({
           }}
         >
           <ImageContainer
-            href="/"
+            to="/"
             style={{
               pointerEvents: compact ? "none" : "auto",
             }}

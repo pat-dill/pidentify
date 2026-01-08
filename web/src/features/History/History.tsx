@@ -15,7 +15,7 @@ import { formatDurationLong } from "@/utils/formatDurationShort";
 import dayjs from "dayjs";
 import { useHistory } from "@/api/history/getHistory";
 import { useStatus } from "@/contexts/StatusContext";
-import { Link } from "next-view-transitions";
+import { Link } from "react-router-dom";
 import { Flex, Typography } from "antd";
 import useAutoLoadMore from "@/utils/useAutoLoadMore";
 import useSafeClientSplit from "@/utils/useSafeClientSplit";

@@ -2,7 +2,7 @@
 
 import { Button, Card, Flex, Form, Input, InputNumber, message, Typography } from "antd";
 import { useRipEntry } from "@/api/rip/getRip";
-import { useParams } from "next/navigation";
+import { useParams, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AudioClipInput } from "@/features/RipSongTool/AudioClipInput";
 import { useAudioData } from "@/api/rip/getAudioFrames";
@@ -10,7 +10,6 @@ import { useEffect, useRef, useState } from "react";
 import { useClientConfig } from "@/api/getClientConfig";
 import { useFloatingStatus } from "@/features/NowPlaying/FloatingCurrentTrack";
 import { useSaveRipToLibrary } from "@/api/rip/saveRipToLibrary";
-import { useTransitionRouter } from "next-view-transitions";
 
 type FormFields = {
   trackName: string;
@@ -20,11 +19,11 @@ type FormFields = {
 };
 
 export function RipSongPage() {
-  const { id: entryId }: { id: string } = useParams();
+  const { id: entryId } = useParams<{ id: string }>();
   const { data: ripMeta } = useRipEntry({ entryId, suspend: true });
   const { data: config } = useClientConfig({ suspend: true });
 
-  const router = useTransitionRouter();
+  const navigate = useNavigate();
 
   const [form] = Form.useForm<FormFields>();
 
@@ -62,7 +61,7 @@ export function RipSongPage() {
 
   const saveRipToLibraryMut = useSaveRipToLibrary({
     onSuccess: () => {
-      router.push(`/`);
+      navigate(`/`);
     },
   });
 

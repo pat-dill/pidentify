@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { Flex } from "antd";
-import { FloatingCurrentTrack } from "@/features/NowPlaying/FloatingCurrentTrack";
 
 export default function Layout({ children }: { children?: ReactNode }) {
   return (

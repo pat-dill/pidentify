@@ -1,6 +1,6 @@
 import { post } from "../request";
 import { z } from "zod";
-import { useTransitionRouter } from "next-view-transitions";
+import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 
 const responseSchema = z.object({
@@ -23,7 +23,7 @@ type StartHistoryEntryRipOpts = {
 };
 
 export function useStartHistoryEntryRip() {
-  const router = useTransitionRouter();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (opts: StartHistoryEntryRipOpts) => {
@@ -31,7 +31,7 @@ export function useStartHistoryEntryRip() {
 
       await startHistoryEntryRip(entry_id);
       if (redirect) {
-        router.push(`/rip/${entry_id}`);
+        navigate(`/rip/${entry_id}`);
       }
     },
   });
