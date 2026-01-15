@@ -39,11 +39,24 @@ class DBModel(DeclarativeBase):
     }
 
 
+class Album(DBModel):
+    __tablename__ = "albums"
+
+    album_guid: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    
+    album_name: Mapped[str] = mapped_column()
+    album_image: Mapped[str | None] = mapped_column()
+    artist_name: Mapped[str] = mapped_column()
+
+    last_fm_url: Mapped[str | None] = mapped_column()
+
+
 class Track(DBModel):
     __tablename__ = "tracks"
 
     track_guid: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4,
                                                   server_default=sqlfunc.gen_random_uuid())
+    album_guid: Mapped[uuid.UUID] = mapped_column(ForeignKey(Album.album_guid))
 
     track_name: Mapped[str] = mapped_column()
     artist_name: Mapped[str | None] = mapped_column()
