@@ -97,6 +97,14 @@ class StatusResponse(IdentifyResult):
     can_skip: bool = False
 
 
+class DbAlbum(BaseModel):
+    album_guid: UUID
+    album_name: str
+    artist_name: str
+    album_image: str | None = None
+    last_fm_url: str | None = None
+
+
 class DbTrack(BaseModel):
     track_guid: UUID
     track_name: str

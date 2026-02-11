@@ -7,7 +7,7 @@ from server import models
 from server.db.sqlalchemy_context_client import db_client
 from server.db.utils import paginate
 from server.models import BaseModel, PaginatedResponse
-from server.sql_schemas import HistoryEntry, Track, TrackId
+from server.sql_schemas import Album, HistoryEntry, Track, TrackId
 from server.utils import get_keywords, handle_filters_arg, db_model_dict
 
 
@@ -27,6 +27,28 @@ class UniqueArtist(BaseModel):
 
 
 # == Methods ==
+
+
+def get_or_create_album_by_name(session, album_name: str, artist_name: str, **kwargs) -> models.DbAlbum:
+    """
+    Get an existing album by name and artist, or create a new one if it doesn't exist.
+    Returns the DbAlbum model.
+    """
+    existing_album = session.execute(
+        select(Album)
+        .where(Album.album_name == album_name, Album.artist_name == artist_name)
+    ).scalar_one_or_none()
+
+    if existing_album:
+        return models.DbAlbum.model_validate(existing_album, from_attributes=True)
+
+    new_album = session.execute(
+        insert(Album)
+        .values(album_name=album_name, artist_name=artist_name, **kwargs)
+        .returning(Album)
+    ).scalar_one()
+
+    return models.DbAlbum.model_validate(new_album, from_attributes=True)
 
 
 def get_history_entries(
@@ -88,6 +110,15 @@ def get_db_track_from_music_id(track_id: str, source: str = "", **kwargs) -> mod
         if db_track:
             return models.DbTrack.model_validate(db_track, from_attributes=True)
 
+        # If no album_guid specified, find or create an album based on album_name and artist_name
+        if "album_guid" not in kwargs:
+            album_name = kwargs.get("album_name")
+            artist_name = kwargs.get("artist_name")
+            if album_name and artist_name:
+                album_image = kwargs.get("track_image")  # Use track image as album image if available
+                album = get_or_create_album_by_name(session, album_name, artist_name, album_image)
+                kwargs["album_guid"] = album.album_guid
+
         db_track = session.execute(
             insert(Track)
             .values(**kwargs)
@@ -123,6 +154,12 @@ def add_or_update_db_track_by_name(track_name: str, artist_name: str, album_name
             return update_db_track(db_track.track_guid, **kwargs)
         
         else:
+            # If no album_guid specified, find or create an album based on album_name and artist_name
+            if "album_guid" not in kwargs:
+                album_image = kwargs.get("track_image")  # Use track image as album image if available
+                album = get_or_create_album_by_name(session, album_name, artist_name, album_image)
+                kwargs["album_guid"] = album.album_guid
+
             db_track = session.execute(
                 insert(Track)
                 .values(track_name=track_name, artist_name=artist_name, album_name=album_name, **kwargs)
@@ -202,10 +239,7 @@ def save_history_entry(*, track_guid, detected_at: datetime, started_at: datetim
         return models.HistoryEntry.model_validate(entry, from_attributes=True)
 
 
-def update_history_entries(
-        *filters,
-        **values,
-) -> int:
+def update_history_entries(*filters, **values) -> int:
     with db_client.session() as session:
         session.execute(
             update(HistoryEntry)

@@ -43,7 +43,7 @@ class Album(DBModel):
     __tablename__ = "albums"
 
     album_guid: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    
+
     album_name: Mapped[str] = mapped_column()
     album_image: Mapped[str | None] = mapped_column()
     artist_name: Mapped[str] = mapped_column()
@@ -59,8 +59,8 @@ class Track(DBModel):
     album_guid: Mapped[uuid.UUID] = mapped_column(ForeignKey(Album.album_guid))
 
     track_name: Mapped[str] = mapped_column()
-    artist_name: Mapped[str | None] = mapped_column()
-    album_name: Mapped[str | None] = mapped_column()
+    artist_name: Mapped[str] = mapped_column()
+    album_name: Mapped[str] = mapped_column()
     track_no: Mapped[int | None] = mapped_column()
     label: Mapped[str | None] = mapped_column()
     released: Mapped[str | None] = mapped_column()
