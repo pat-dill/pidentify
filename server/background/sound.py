@@ -15,15 +15,14 @@ from server import music_id
 from server.config import env_config, file_config
 from server.logger import logger
 from server.last_fm import get_last_fm_track, get_last_fm_artist, get_last_fm_album, extract_track_number_from_last_fm
-from server.redis_client import sleep
 from server.db import save_history_entry, get_history_entries, get_db_track_from_music_id
 from server.utils import utcnow, normalize
 from server.models import ResponseModel, IdentifyResult
-from server.redis_client import get_redis
 from server.db import get_history_entry, update_history_entries
 from server.utils import clamp
 from server.circular_buffer import CircularBuffer
 from server import sql_schemas
+from server.ipc.peer import Peer, SyncPeer
 
 buffer_lock = threading.Lock()
 
@@ -90,6 +89,35 @@ effective_sample_rate, effective_channels = get_effective_audio_params()
 buffer_size = effective_sample_rate * file_config.buffer_length_seconds
 
 
+# ------------------------------------------------------------------
+# IPC-based sleep (replaces Redis-based sleep)
+# ------------------------------------------------------------------
+
+def ipc_sleep(sync_peer: SyncPeer, sleep_id: str, seconds: int | float, poll_interval: float = 0.2):
+    """Interruptible sleep via the IPC state manager.
+
+    Sets a key ``sleep.<sleep_id>`` with a TTL equal to *seconds*.  Then
+    polls the key; the sleep ends when the key expires **or** is deleted
+    by the web server (e.g. scan-now).
+    """
+    if seconds <= 0:
+        return
+    elif seconds < poll_interval:
+        time.sleep(seconds)
+        return
+
+    key = f"sleep.{sleep_id}"
+    ends_at = utcnow() + timedelta(seconds=seconds)
+    sync_peer.state_set(key, ends_at.isoformat(), ttl_ms=int(seconds * 1000))
+
+    while sync_peer.state_get(key):
+        time.sleep(poll_interval)
+
+
+# ------------------------------------------------------------------
+# Audio capture
+# ------------------------------------------------------------------
+
 def audio_capture(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
     """ Continuously captures stereo audio and updates shared memory buffer. """
 
@@ -122,7 +150,16 @@ def audio_capture(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
             logger.info("\nStopped recording.")
 
 
-def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, loop: asyncio.BaseEventLoop):
+# ------------------------------------------------------------------
+# Music identification loop
+# ------------------------------------------------------------------
+
+def run_music_id_loop(
+    audio_buffer: CircularBuffer,
+    timestamp_np: np.ndarray,
+    loop: asyncio.BaseEventLoop,
+    sync_peer: SyncPeer,
+):
     asyncio.set_event_loop(loop)
 
     back_off = 0.0  # portion of configured duration time to wait before recording again
@@ -131,13 +168,11 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
     is_waiting = True  # True when waiting for sound, False when actively scanning
 
     while True:
-        rdb = get_redis()
-
         try:
             if is_waiting:
                 # Waiting mode: poll every second and check RMS
-                rdb.delete("now_scanning")
-                rdb.set("status", "waiting", px=timedelta(seconds=2))
+                sync_peer.state_delete("now_scanning")
+                sync_peer.state_set("status", "waiting", ttl_ms=2000)
                 logger.debug("Waiting for sound...")
                 time.sleep(1.0)
 
@@ -153,14 +188,14 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                     # Sound detected, switch to scanning mode
                     logger.info(f"Sound detected (RMS: {rms}), starting scan...")
                     is_waiting = False
-                    rdb.delete("status")
+                    sync_peer.state_delete("status")
                     # Continue to scanning logic below
                 else:
                     # Still no sound, continue waiting
                     continue
 
             # Scanning mode: perform full music identification
-            rdb.set("now_scanning", (utcnow() + timedelta(seconds=duration)).isoformat())
+            sync_peer.state_set("now_scanning", (utcnow() + timedelta(seconds=duration)).isoformat())
             logger.info(f"scanning {duration}s...")
             time.sleep(duration)
 
@@ -234,7 +269,7 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                 else:
                     remaining_seconds = 0
 
-                if str(db_track.track_guid) == str(rdb.get("track_id")):
+                if str(db_track.track_guid) == str(sync_peer.state_get("track_id")):
                     subsequent_detects += 1
                     if subsequent_detects >= 1:
 
@@ -247,11 +282,11 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                     subsequent_detects = 0
                     back_off = 0
 
-                expire_after = timedelta(seconds=max(0, remaining_seconds) + (file_config.duration + 5) * 3)
+                expire_after_ms = int((max(0, remaining_seconds) + (file_config.duration + 5) * 3) * 1000)
 
-                rdb.set("now_playing", result.model_dump_json(), px=expire_after)
-                rdb.set("track_id", str(db_track.track_guid), px=expire_after)
-                rdb.set("offset", result.track.offset or None, px=expire_after)
+                sync_peer.state_set("now_playing", result.model_dump_json(), ttl_ms=expire_after_ms)
+                sync_peer.state_set("track_id", str(db_track.track_guid), ttl_ms=expire_after_ms)
+                sync_peer.state_set("offset", str(result.track.offset) if result.track.offset else None, ttl_ms=expire_after_ms)
 
                 logger.info(
                     f"{result.track.artist_name} - {result.track.track_name}  "
@@ -264,16 +299,16 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                     else:
                         # try to fetch the next song faster for a quick update
                         duration = 0.7 * file_config.duration
-                        sleep("next_scan", max(0, remaining_seconds + 1))
+                        ipc_sleep(sync_peer, "next_scan", max(0, remaining_seconds + 1))
 
                 else:
                     duration = file_config.duration
-                    sleep("next_scan", back_off * file_config.duration)
+                    ipc_sleep(sync_peer, "next_scan", back_off * file_config.duration)
                     back_off = min(1.0, back_off + 0.25)
 
             else:
                 logger.info(result.message)
-                if rdb.get("track_id"):
+                if sync_peer.state_get("track_id"):
                     back_off = 0
 
                 # If RMS is below threshold, switch to waiting mode
@@ -285,28 +320,34 @@ def run_music_id_loop(audio_buffer: CircularBuffer, timestamp_np: np.ndarray, lo
                     continue
                 
                 duration = file_config.duration
-                sleep("next_scan", back_off * file_config.duration)
+                ipc_sleep(sync_peer, "next_scan", back_off * file_config.duration)
                 back_off = min(1.0, back_off + 0.25)
                 subsequent_detects = 0
 
-            rdb.set("message", result.message)
-            rdb.set("recorded_at", result.recorded_at.isoformat())
+            sync_peer.state_set("message", result.message)
+            sync_peer.state_set("recorded_at", result.recorded_at.isoformat())
 
         except Exception as e:
-            rdb.delete("now_scanning")
+            sync_peer.state_delete("now_scanning")
             logger.warning(str(e))
             # raise e
 
-            sleep("next_scan", back_off * file_config.duration)
+            ipc_sleep(sync_peer, "next_scan", back_off * file_config.duration)
             back_off = min(1.0, back_off + 0.25)
             duration = file_config.duration
             subsequent_detects = 0
 
 
-def run_live_stats(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
-    while True:
-        rdb = get_redis()
+# ------------------------------------------------------------------
+# Live stats
+# ------------------------------------------------------------------
 
+def run_live_stats(
+    audio_buffer: CircularBuffer,
+    timestamp_np: np.ndarray,
+    sync_peer: SyncPeer,
+):
+    while True:
         try:
             time.sleep(env_config.live_stats_frequency)
 
@@ -316,15 +357,46 @@ def run_live_stats(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
 
             rms = float(np.sqrt(np.mean(audio_data ** 2)))
 
-            rdb.set("rms", rms, px=timedelta(seconds=env_config.live_stats_frequency + 1))
+            ttl_ms = int((env_config.live_stats_frequency + 1) * 1000)
+            sync_peer.state_set("rms", str(rms), ttl_ms=ttl_ms)
 
         except Exception as e:
             logger.warning(str(e))
             time.sleep(env_config.live_stats_frequency)
 
 
-def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
-    def save_entry(entry_id: str):
+# ------------------------------------------------------------------
+# Entry point
+# ------------------------------------------------------------------
+
+def start_recorder() -> None:
+    """Start the recorder service.
+
+    Creates its own asyncio event loop, connects a ``Peer("recorder")``
+    to the broker, registers command handlers, and launches worker
+    threads for audio capture, music identification, and live stats.
+
+    This function blocks forever (runs the event loop).  Call it from a
+    daemon thread when embedding inside another process.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    audio_buffer = CircularBuffer((buffer_size, effective_channels), dtype=np.float32)
+
+    timestamp_np = np.ndarray((1,), dtype=np.float64)
+    timestamp_np[0] = 0
+
+    # -- IPC peer -------------------------------------------------------
+    peer = Peer("recorder", env_config.ipc_broker_dir)
+    sync_peer = SyncPeer(peer, loop)
+
+    # -- Command handlers -----------------------------------------------
+    # These closures capture audio_buffer and timestamp_np from the outer
+    # scope so they can access the circular buffer when the server sends
+    # save / dump commands.
+
+    def _save_entry(entry_id: str) -> ResponseModel:
         entry = get_history_entry(entry_id)
         if entry is None:
             return ResponseModel(success=False, status="not_found")
@@ -357,12 +429,6 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
 
         sf.write(song_path, audio_data, effective_sample_rate, format="FLAC")
 
-        # metadata = FLAC(song_path)
-        # metadata["title"] = entry.track_name
-        # metadata["artist"] = entry.artist
-        # metadata["album"] = entry.album or "[Unknown Album]"
-        # metadata.save()
-
         update_history_entries(
             dict(entry_id=entry.entry_id),
             saved_temp_buffer=True
@@ -370,36 +436,11 @@ def run_save_music(audio_buffer: CircularBuffer, timestamp_np: np.ndarray):
 
         return ResponseModel(success=True, message="Saved temp song", data=song_path.absolute())
 
-    rdb = get_redis()
-    ps = rdb.pubsub()
-    ps.subscribe("save")
-    for evt in ps.listen():
-        if evt["type"] != "message":
-            continue
-
-        entry_id = evt["data"]
-
-        try:
-            resp = save_entry(entry_id)
-            rdb.publish(entry_id, resp.model_dump_json())
-        except Exception as e:
-            logger.error(e)
-            rdb.publish(
-                entry_id,
-                ResponseModel(
-                    success=False,
-                    status="internal_error",
-                    message=str(e)
-                ).model_dump_json()
-            )
-
-
-def run_dump_audio(audio_buffer: CircularBuffer):
-    def dump_audio(seconds: float = None):
-        logger.info(f"Dumping audio buffer")
+    def _dump_audio(seconds: float | None = None) -> ResponseModel:
+        logger.info("Dumping audio buffer")
 
         with buffer_lock:
-            raw = audio_buffer.read(int(seconds * effective_sample_rate if seconds else None))
+            raw = audio_buffer.read(int(seconds * effective_sample_rate) if seconds else None)
 
         raw = normalize(raw)
         path = env_config.appdata_dir / "dump.flac"
@@ -410,74 +451,66 @@ def run_dump_audio(audio_buffer: CircularBuffer):
             data=path.absolute(),
         )
 
-    rdb = get_redis()
-    ps = rdb.pubsub()
-    ps.subscribe("dump")
-    for evt in ps.listen():
-        if evt["type"] != "message":
-            continue
-
+    @peer.on_command("save")
+    async def handle_save_command(data):
+        """IPC command handler for 'save'."""
         try:
-            resp = dump_audio(float(evt["data"]) if evt["data"] else None)
-            rdb.publish("dump_response", resp.model_dump_json())
+            resp = await loop.run_in_executor(None, _save_entry, data)
+            return resp.model_dump()
         except Exception as e:
             logger.error(e)
-            rdb.publish(
-                "dump_response",
-                ResponseModel(
-                    success=False,
-                    status="internal_error",
-                    message=str(e)
-                ).model_dump_json()
-            )
+            return ResponseModel(
+                success=False,
+                status="internal_error",
+                message=str(e),
+            ).model_dump()
 
+    @peer.on_command("dump")
+    async def handle_dump_command(data):
+        """IPC command handler for 'dump'."""
+        try:
+            seconds = float(data) if data else None
+            resp = await loop.run_in_executor(None, _dump_audio, seconds)
+            return resp.model_dump()
+        except Exception as e:
+            logger.error(e)
+            return ResponseModel(
+                success=False,
+                status="internal_error",
+                message=str(e),
+            ).model_dump()
 
-if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    audio_buffer = CircularBuffer((buffer_size, effective_channels), dtype=np.float32)
+    # -- Start peer (connects to broker) --------------------------------
+    loop.run_until_complete(peer.start())
 
-    timestamp_np = np.ndarray((1,), dtype=np.float64)
-    timestamp_np[0] = 0
-
-    # Start audio capture process
-    capture_process = threading.Thread(
+    # -- Start worker threads -------------------------------------------
+    capture_thread = threading.Thread(
         target=audio_capture,
         args=(audio_buffer, timestamp_np),
-        daemon=True
+        daemon=True,
     )
-    capture_process.start()
+    capture_thread.start()
 
     music_id_thread = threading.Thread(
         target=run_music_id_loop,
-        args=(audio_buffer, timestamp_np, loop),
-        daemon=True
+        args=(audio_buffer, timestamp_np, loop, sync_peer),
+        daemon=True,
     )
     music_id_thread.start()
 
-    live_stats_process = threading.Thread(
+    live_stats_thread = threading.Thread(
         target=run_live_stats,
-        args=(audio_buffer, timestamp_np),
-        daemon=True
+        args=(audio_buffer, timestamp_np, sync_peer),
+        daemon=True,
     )
-    live_stats_process.start()
+    live_stats_thread.start()
 
-    save_process = threading.Thread(
-        target=run_save_music,
-        args=(audio_buffer, timestamp_np),
-        daemon=True
-    )
-    save_process.start()
+    # Save and dump are handled by IPC command handlers on the event
+    # loop – no dedicated threads needed.
 
-    dump_process = threading.Thread(
-        target=run_dump_audio,
-        args=(audio_buffer,),
-        daemon=True
-    )
-    dump_process.start()
-
+    logger.info("Recorder service started")
     loop.run_forever()
-    capture_process.join()
-    music_id_thread.join()
-    live_stats_process.join()
-    save_process.join()
-    dump_process.join()
+
+
+if __name__ == "__main__":
+    start_recorder()

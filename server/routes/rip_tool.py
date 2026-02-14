@@ -11,7 +11,7 @@ from server.config import env_config
 from server.db import get_history_entry, update_history_entries
 from server.exceptions import ErrorResponse
 from server.models import HistoryEntry, ResponseModel, BaseModel
-from server.redis_client import get_redis
+from server.ipc.webserver_peer import get_webserver_peer
 from server.rip_tool.audio_data import get_audio_data_chart, trim_and_save_audio, get_image_extension_from_url
 from server.utils import safe_filename
 
@@ -56,7 +56,7 @@ def check_auth(request):
 
 
 @api.post("/{entry_id}/start")
-def start_rip(request: Request, entry_id: str) -> ResponseModel:
+async def start_rip(request: Request, entry_id: str) -> ResponseModel:
     check_auth(request)
 
     entry = get_history_entry(entry_id)
@@ -64,19 +64,16 @@ def start_rip(request: Request, entry_id: str) -> ResponseModel:
     if entry is None:
         return ResponseModel(success=False, status="not_found")
 
-    rdb = get_redis()
-    rdb.publish("save", str(entry.entry_id))
-
-    ps = rdb.pubsub()
-    ps.subscribe(str(entry.entry_id))
-    ps.get_message(timeout=1)
-    resp = ps.get_message(timeout=10)
-
-    if resp is None:
+    peer = get_webserver_peer()
+    try:
+        resp_raw = await peer.command("recorder.save", str(entry.entry_id), timeout=10)
+    except RuntimeError:
+        raise ErrorResponse(code=500, status="recorder_not_connected")
+    except asyncio.TimeoutError:
         raise ErrorResponse(code=500, status="timed_out")
-    else:
-        resp = ResponseModel.model_validate_json(resp["data"])
-        return resp
+
+    resp = ResponseModel.model_validate(resp_raw)
+    return resp
 
 
 @api.get("/{entry_id}")

@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 
+import platformdirs
 from pydantic import BaseModel
 import secrets
 import yaml
@@ -14,9 +15,8 @@ class EnvConfig(BaseModel):
 
     user_agent: str = "Pidentify <todo: add github url after publish>"
 
-    redis_host: str = "localhost"
-    redis_port: int = 6379
     db_url: str = "sqlite:////etc/pidentify/config/database.db"
+    ipc_broker_dir: str = str(Path(platformdirs.user_runtime_dir("pidentify", ensure_exists=True)))
 
     http_websocket_url: str = ""
     https_websocket_url: str = ""

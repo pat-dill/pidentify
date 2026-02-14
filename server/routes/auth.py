@@ -9,7 +9,6 @@ from server.config import env_config, FileConfig
 from server.db import get_history_entry
 from server.exceptions import ErrorResponse
 from server.models import HistoryEntry, ResponseModel, BaseModel
-from server.redis_client import get_redis
 from server.rip_tool.audio_data import get_audio_data_chart
 from server.utils import is_local_client
 from server.auth import check_password, SessionToken, get_session

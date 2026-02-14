@@ -1,77 +1,76 @@
 import asyncio
-import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
-from redis import Redis, RedisError
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
 from server.config import env_config
 from server.logger import logger
 from server.models import StatusResponse
-from server.redis_client import get_redis
-from server.websockets import ConnectionManager
+from server.ipc.webserver_peer import get_webserver_peer
+from server.ws_manager import ConnectionManager
 
 ws_manager = ConnectionManager()
 
 
-def push_status_updates(stop_event, _ws_manager: ConnectionManager, loop: asyncio.BaseEventLoop):
-    rdb = get_redis()
+async def push_status_updates(stop_event: asyncio.Event, _ws_manager: ConnectionManager):
     last_status = None
-    while True:
-        if stop_event.is_set():
-            break
-
+    while not stop_event.is_set():
         try:
-            status = get_status(rdb)
+            status = await get_status()
             if status != last_status:
                 last_status = status
-                asyncio.run_coroutine_threadsafe(_ws_manager.broadcast(status.model_dump_json()), loop)
-        except RedisError:
-            rdb = get_redis()
+                await _ws_manager.broadcast(status.model_dump_json())
         except Exception as e:
             logger.error(e)
+
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=0.25)
+            break
+        except asyncio.TimeoutError:
+            pass
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    stop_trigger = threading.Event()
-    status_push_thread = threading.Thread(
-        target=push_status_updates,
-        args=(stop_trigger, ws_manager, asyncio.get_event_loop()),
-        daemon=True
-    )
-    status_push_thread.start()
+    stop_trigger = asyncio.Event()
+    task = asyncio.create_task(push_status_updates(stop_trigger, ws_manager))
     yield
     stop_trigger.set()
-    status_push_thread.join()  # wait for status loop to stop gracefully
+    await task
     ws_manager.close()
 
 
 api = APIRouter(prefix="/api/status", lifespan=lifespan)
 
 
-def get_status(rdb: Redis = None) -> StatusResponse | None:
-    rdb = get_redis() if rdb is None else rdb
+async def get_status() -> StatusResponse:
+    peer = get_webserver_peer()
 
-    playing_raw = rdb.get("now_playing")
+    playing_raw = await peer.state_get("now_playing")
+    rms_raw = await peer.state_get("rms")
+
     if playing_raw:
         resp = StatusResponse.model_validate_json(playing_raw)
-        resp.rms = float(rms_raw) if (rms_raw := rdb.get("rms")) else None
-
+        resp.rms = float(rms_raw) if rms_raw else None
     else:
+        message = await peer.state_get("message") or ""
+        recorded_at_raw = await peer.state_get("recorded_at")
         resp = StatusResponse(
             success=False,
-            message=rdb.get("message") or "",
-            recorded_at=datetime.fromisoformat(rdb.get("recorded_at")) if rdb.exists("recorded_at") else None,
-            rms=float(rms_raw) if (rms_raw := rdb.get("rms")) else None
+            message=message,
+            recorded_at=datetime.fromisoformat(recorded_at_raw) if recorded_at_raw else None,
+            rms=float(rms_raw) if rms_raw else None,
         )
 
-    resp.next_scan = datetime.fromisoformat(rdb.get("sleep.next_scan")) if rdb.exists("sleep.next_scan") else None
-    resp.scan_ends = datetime.fromisoformat(rdb.get("now_scanning")) if rdb.exists("now_scanning") else None
+    next_scan_raw = await peer.state_get("sleep.next_scan")
+    resp.next_scan = datetime.fromisoformat(next_scan_raw) if next_scan_raw else None
+
+    now_scanning_raw = await peer.state_get("now_scanning")
+    resp.scan_ends = datetime.fromisoformat(now_scanning_raw) if now_scanning_raw else None
 
     return resp
 
@@ -79,7 +78,7 @@ def get_status(rdb: Redis = None) -> StatusResponse | None:
 @api.get("/")
 @api.get("")
 async def api_get_status() -> StatusResponse:
-    return get_status()
+    return await get_status()
 
 
 @api.get("/websocket-host")

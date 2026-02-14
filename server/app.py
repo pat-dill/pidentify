@@ -1,3 +1,4 @@
+import asyncio
 import json
 import subprocess
 import sys
@@ -22,7 +23,7 @@ sys.path.append(str(Path(__file__).parents))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from server.redis_client import get_redis
+from server.ipc.webserver_peer import get_webserver_peer
 from server.routes import status, history, rip_tool, auth, settings
 from server.routes.status import get_status
 
@@ -43,10 +44,10 @@ app.include_router(settings.api)
 
 
 @app.post("/api/scan-now")
-def scan_now(request: Request) -> ResponseModel:
+async def scan_now(request: Request) -> ResponseModel:
     if is_admin(request):
-        rdb = get_redis()
-        rdb.delete("sleep.next_scan")
+        peer = get_webserver_peer()
+        await peer.state_delete("sleep.next_scan")
         return ResponseModel(success=True, status="")
     else:
         raise ErrorResponse(403, "not_authorized")
@@ -55,39 +56,38 @@ def scan_now(request: Request) -> ResponseModel:
 @app.get("/api/dump", response_model=None)
 async def dump_audio(request: Request, mins: float = 1) -> ResponseModel | FileResponse:
     if is_admin(request):
-        rdb = get_redis()
-        rdb.publish("dump", f"{float(mins * 60)}")
-
-        ps = rdb.pubsub()
-        ps.subscribe("dump_response")
-        ps.get_message(timeout=1)
-        resp_raw = ps.get_message(timeout=30)
-
-        if resp_raw is None:
+        peer = get_webserver_peer()
+        try:
+            resp_raw = await peer.command("recorder.dump", f"{float(mins * 60)}", timeout=30)
+        except RuntimeError:
+            raise ErrorResponse(500, "recorder_not_connected")
+        except asyncio.TimeoutError:
             raise ErrorResponse(500, "timed_out")
+
+        resp = ResponseModel.model_validate(resp_raw)
+        if resp.data:
+            return FileResponse(
+                resp.data,
+                filename=f"{safe_filename(datetime.now().isoformat())}.flac"
+            )
         else:
-            resp = ResponseModel.model_validate_json(resp_raw["data"])
-            if resp.data:
-                return FileResponse(
-                    resp.data,
-                    filename=f"{safe_filename(datetime.now().isoformat())}.flac"
-                )
-            else:
-                return resp
+            return resp
 
     else:
         raise ErrorResponse(403, "not_authorized")
 
 
 @app.get("/api/lyrics")
-def get_current_lyrics():
-    cur_status = get_status()
+async def get_current_lyrics():
+    cur_status = await get_status()
     if cur_status.track is None:
         raise ErrorResponse(400, "no_track")
 
-    rdb = get_redis()
-    if rdb.exists(f"lyrics:{cur_status.track.track_id}"):
-        return Lyrics.model_validate_json(rdb.get(f"lyrics:{cur_status.track.track_id}"))
+    peer = get_webserver_peer()
+    lyrics_key = f"lyrics:{cur_status.track.track_id}"
+    cached = await peer.state_get(lyrics_key)
+    if cached:
+        return Lyrics.model_validate_json(cached)
 
     params = {
         "track_name": cur_status.track.track_name,
@@ -122,7 +122,7 @@ def get_current_lyrics():
             for line in raw_lyrics["plainLyrics"].split("\n")
         ])
 
-    rdb.set(f"lyrics:{cur_status.track.track_id}", lyrics.model_dump_json(), px=timedelta(days=7))
+    await peer.state_set(lyrics_key, lyrics.model_dump_json(), ttl_ms=int(timedelta(days=7).total_seconds() * 1000))
     return lyrics
 
 
