@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import uvicorn
 
+from server.background.sound import RESTART_EXIT_CODE
 from server.config import env_config
 from server.logger import logger
 from server.state_manager import StateManager, init_state_manager
@@ -30,6 +31,56 @@ from server.ipc.state_peer import init_state_peer
 from server.ipc.webserver_peer import init_webserver_peer
 
 RECORDER_SCRIPT = str(Path(__file__).resolve().parent / "background" / "sound.py")
+
+
+def _try_nice() -> None:
+    """Attempt to raise process priority; silently fall back if unprivileged."""
+    try:
+        os.nice(-10)
+    except PermissionError:
+        pass  # requires root / CAP_SYS_NICE
+
+
+def _spawn_recorder() -> subprocess.Popen:
+    """Spawn the recorder subprocess with realtime (nice) priority."""
+    proc = subprocess.Popen(
+        [sys.executable, "-u", RECORDER_SCRIPT],
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])},
+        preexec_fn=_try_nice,
+    )
+    logger.info(f"Recorder process started (pid={proc.pid})")
+    return proc
+
+
+async def _supervise_recorder(stop_event: asyncio.Event) -> None:
+    """Watch the recorder subprocess; respawn on restart exit code."""
+    loop = asyncio.get_event_loop()
+    proc = _spawn_recorder()
+
+    while not stop_event.is_set():
+        # Poll without blocking the event loop
+        exit_code = await loop.run_in_executor(None, proc.wait)
+
+        if stop_event.is_set():
+            break
+
+        if exit_code == RESTART_EXIT_CODE:
+            logger.info("Recorder requested restart – respawning")
+            proc = _spawn_recorder()
+        else:
+            logger.warning(f"Recorder exited unexpectedly (code={exit_code}) – respawning")
+            await asyncio.sleep(1)  # brief back-off before respawn
+            proc = _spawn_recorder()
+
+    # Cleanup on shutdown
+    if proc.poll() is None:
+        proc.send_signal(signal.SIGTERM)
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+    logger.info("Recorder supervisor stopped")
 
 
 async def main() -> None:
@@ -51,13 +102,9 @@ async def main() -> None:
     ws_peer = init_webserver_peer(broker_dir)
     await ws_peer.start()
 
-    # -- Recorder service (subprocess with realtime nice) ---------------
-    recorder_proc = subprocess.Popen(
-        [sys.executable, "-u", RECORDER_SCRIPT],
-        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])},
-        # preexec_fn=lambda: os.nice(-10),
-    )
-    logger.info(f"Recorder process started (pid={recorder_proc.pid}, nice=-10)")
+    # -- Recorder service (supervised subprocess) -----------------------
+    recorder_stop = asyncio.Event()
+    recorder_task = asyncio.create_task(_supervise_recorder(recorder_stop))
 
     # -- Uvicorn (FastAPI) ----------------------------------------------
     port = int(os.environ.get("PORT", 8000))
@@ -72,14 +119,8 @@ async def main() -> None:
     try:
         await server.serve()
     finally:
-        # Gracefully stop the recorder
-        recorder_proc.send_signal(signal.SIGTERM)
-        try:
-            recorder_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            recorder_proc.kill()
-            recorder_proc.wait()
-        logger.info("Recorder process stopped")
+        recorder_stop.set()
+        await recorder_task
 
         await ws_peer.stop()
         await state_peer.stop()

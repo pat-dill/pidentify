@@ -480,6 +480,18 @@ def start_recorder() -> None:
                 message=str(e),
             ).model_dump()
 
+    @peer.on_command("restart")
+    async def handle_restart_command(data):
+        """IPC command handler for 'restart'.
+
+        Stops the event loop, causing the process to exit with code 42.
+        The parent process watches for this code and respawns us, which
+        reloads the config from disk on fresh import.
+        """
+        logger.info("Restart requested via IPC – shutting down")
+        loop.call_soon(loop.stop)
+        return {"status": "restarting"}
+
     # -- Start peer (connects to broker) --------------------------------
     loop.run_until_complete(peer.start())
 
@@ -511,6 +523,14 @@ def start_recorder() -> None:
     logger.info("Recorder service started")
     loop.run_forever()
 
+    # If we get here, loop.stop() was called (restart command).
+    loop.run_until_complete(peer.stop())
+    logger.info("Recorder service stopped")
+
+
+# Exit code used to signal "please respawn me" to the parent process.
+RESTART_EXIT_CODE = 42
 
 if __name__ == "__main__":
     start_recorder()
+    sys.exit(RESTART_EXIT_CODE)

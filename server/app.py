@@ -1,6 +1,5 @@
 import asyncio
 import json
-import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -145,29 +144,17 @@ async def get_client_config(request: Request) -> ClientConfig:
 
 
 @app.post("/api/recorder/restart")
-def restart_recorder(request: Request) -> ResponseModel:
+async def restart_recorder(request: Request) -> ResponseModel:
     if not is_admin(request):
-        return ErrorResponse(403, "not_authorized")
+        raise ErrorResponse(403, "not_authorized")
 
+    peer = get_webserver_peer()
     try:
-        subprocess.run(
-            ["s6-svc", "-r", env_config.recorder_service_path],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError:
-        raise ErrorResponse(
-            400, 
-            "not_available",
-            "s6-svc is not available in this environment",
-        )
-    except subprocess.CalledProcessError as exc:
-        raise ErrorResponse(
-            400,
-            "restart_failed",
-            exc.stderr.strip() or "Failed to restart recorder",
-        )
+        await peer.command("recorder.restart", timeout=5)
+    except RuntimeError as exc:
+        raise ErrorResponse(500, "restart_failed", str(exc))
+    except asyncio.TimeoutError:
+        raise ErrorResponse(500, "timed_out", "Recorder did not respond")
 
     return ResponseModel(success=True, message="Recorder restart requested")
 
