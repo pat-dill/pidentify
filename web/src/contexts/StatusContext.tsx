@@ -20,7 +20,7 @@ export function StatusContextProvider({
 }) {
   const { data: websocketHost } = useWebsocketHost();
 
-  const websocket = useWebSocket(`${websocketHost || ""}/api/status/ws`);
+  const websocket = useWebSocket(`${websocketHost}/api/status/ws`);
   const { data: httpStatus } = useStatusHttp({
     live: websocket.readyState !== ReadyState.OPEN,
     suspend,

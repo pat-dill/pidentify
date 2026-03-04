@@ -11,6 +11,5 @@ export function useWebsocketHost() {
     return useQuery({
         queryKey: ["websocket-host"],
         queryFn: () => getWebsocketHost(),
-        staleTime: 0,
     });
 }
